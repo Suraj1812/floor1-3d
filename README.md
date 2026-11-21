@@ -55,3 +55,5 @@ The desk is lamp-free, with a staggered compact keyboard, larger modifier keys, 
 The main monitor follows the supplied curved Samsung-style reference, with a genuinely curved screen and shell, slim black bezels, a cylindrical neck and round base; it tilts backward 10 degrees. A silver MacBook Air M2-style model on the stand has black keys, a large trackpad, a notched display and the M2 Air port layout. Both computer screens show a calm macOS-inspired desktop with menu bar and dock.
 
 The PC tower sits beneath the far end of the desk on a low riser, with cables routed behind the desk and the central chair space kept clear.
+
+The curved monitor is turned sideways 15 degrees while retaining its backward tilt. A black and muted red racing-style gaming chair replaces the office chair, with a shaped high back, headrest and lumbar cushions, seat bolsters, adjustable armrests, recline hardware and twin-wheel casters.

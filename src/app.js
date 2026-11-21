@@ -163,8 +163,8 @@
     const monitorBase=cylinder(.39,.035,5.31,2.612,-3.65,graphite);monitorBase.scale.x=.88;
     tube([[5.31,2.64,-3.65],[5.37,2.9,-3.65],[5.47,3.21,-3.65]],.058,graphite);
     sphere(5.47,3.24,-3.65,.07,.08,.1,metal);
-    const monitorPivot=new T.Group();monitorPivot.name='reference-style-curved-monitor-10-degree-tilt';
-    monitorPivot.position.set(5.45,3.65,-3.65);monitorPivot.rotation.z=-Math.PI/18;model.add(monitorPivot);
+    const monitorPivot=new T.Group();monitorPivot.name='curved-monitor-angled-sideways-with-backward-tilt';
+    monitorPivot.position.set(5.45,3.65,-3.65);monitorPivot.rotation.set(0,Math.PI/12,-Math.PI/18);model.add(monitorPivot);
     const curvedPanel=new T.Group();curvedPanel.rotation.y=-Math.PI/2;monitorPivot.add(curvedPanel);
     const monitorRadius=4.5;
     function bendMonitorGeometry(geometry){
@@ -349,14 +349,50 @@
     // TV remote beside the keyboard.
     box(.3,.035,.1,3.85,2.64,-2.28,graphite,model,.025);
     for(let i=0;i<5;i++)sphere(3.75+i*.045,2.663,-2.28,.013,.006,.018,cream);
-    // Ergonomic chair faces right, toward monitor.
-    const chair=new T.Group();chair.position.set(2.35,0,-3.55);model.add(chair);
-    cylinder(.12,1.3,0,.83,0,metal,chair);box(1.45,.23,1.55,0,1.57,0,graphite,chair,.09);
-    box(.19,1.55,1.4,-.65,2.42,0,graphite,chair,.07);box(.22,.37,.76,-.65,3.45,0,graphite,chair,.07);
-    box(.035,1.3,1.15,-.535,2.46,0,meshMaterial,chair,.015);
-    box(.15,.28,.95,-.48,2.03,0,graphite,chair,.055);
-    for(const z of [-.8,.8]){box(.08,.53,.08,.07,1.95,z,metal,chair);box(.8,.12,.14,.07,2.2,z,graphite,chair,.03);}
-    for(let i=0;i<5;i++){const a=i*Math.PI*2/5;const leg=box(1.05,.08,.1,Math.cos(a)*.47,.29,Math.sin(a)*.47,metal,chair);leg.rotation.y=-a;sphere(Math.cos(a)*.94,.18,Math.sin(a)*.94,.12,.13,.12,graphite,chair);}
+    // Full racing-style gaming chair, angled gently toward the workstation.
+    const chair=new T.Group();chair.name='high-back-black-red-gaming-chair';chair.position.set(2.35,0,-3.55);chair.rotation.y=.12;model.add(chair);
+    const chairLeather=mat('#202528',.64),chairInsert=mat('#30373b',.91),chairAccent=mat('#7b3038',.78),chairStitch=mat('#9b7778',.9);
+    cylinder(.105,.95,0,.87,0,chrome,chair);cylinder(.15,.36,0,.48,0,graphite,chair);
+    box(1.5,.16,1.44,0,1.44,0,graphite,chair,.04);
+    box(1.45,.24,1.48,0,1.64,0,chairLeather,chair,.06);
+    box(1.21,.06,.99,.04,1.779,0,chairInsert,chair,.018);
+    for(const z of [-.64,.64]){
+      const seatWing=box(1.24,.24,.21,-.04,1.79,z,chairAccent,chair,.04);seatWing.rotation.x=z>0?-.18:.18;
+      tube([[-.6,1.88,z],[0,1.9,z],[.57,1.84,z]],.009,chairStitch,chair);
+    }
+    const gamingBack=new T.Group();gamingBack.position.set(-.67,1.73,0);gamingBack.rotation.z=.1;chair.add(gamingBack);
+    const backProfile=new T.Shape();
+    backProfile.moveTo(-.54,0);backProfile.lineTo(-.66,.6);backProfile.lineTo(-.74,1.5);backProfile.lineTo(-.67,1.83);backProfile.lineTo(-.42,2.12);backProfile.lineTo(-.38,2.43);backProfile.quadraticCurveTo(0,2.54,.38,2.43);backProfile.lineTo(.42,2.12);backProfile.lineTo(.67,1.83);backProfile.lineTo(.74,1.5);backProfile.lineTo(.66,.6);backProfile.lineTo(.54,0);backProfile.closePath();
+    const backGeometry=new T.ExtrudeGeometry(backProfile,{depth:.16,bevelEnabled:true,bevelThickness:.035,bevelSize:.035,bevelSegments:3,steps:1});
+    const backShell=new T.Mesh(backGeometry,chairLeather);backShell.rotation.y=Math.PI/2;backShell.position.x=-.08;backShell.castShadow=true;backShell.receiveShadow=true;gamingBack.add(backShell);
+    box(.16,1.4,.96,.14,.99,0,chairInsert,gamingBack,.035);
+    for(const z of [-.58,.58]){
+      const wing=box(.23,1.26,.23,.15,1.06,z,chairAccent,gamingBack,.035);wing.rotation.x=z>0?-.12:.12;
+      tube([[.275,.2,z*.82],[.275,.75,z],[.275,1.4,z*1.08],[.22,1.75,z*.86]],.009,chairStitch,gamingBack);
+      // Dark harness-slot inserts beneath the integrated headrest.
+      box(.025,.17,.24,.115,1.84,z*.55,graphite,gamingBack,.006);
+      box(.03,.12,.18,.135,1.84,z*.55,metal,gamingBack,.004);
+    }
+    box(.23,.42,.77,.2,2.17,0,chairLeather,gamingBack,.055);
+    box(.025,.25,.58,.326,2.16,0,chairAccent,gamingBack,.008);
+    box(.27,.42,.97,.28,.43,0,chairLeather,gamingBack,.055);
+    for(const z of [-.38,.38])box(.012,.31,.035,.422,.43,z,chairAccent,gamingBack,.003);
+    // Adjustable arm posts, padded tops, recline hinges and height lever.
+    for(const z of [-.86,.86]){
+      box(.11,.54,.1,.06,1.95,z,metal,chair,.018);
+      box(.15,.2,.13,.06,2.13,z,graphite,chair,.015);
+      box(.76,.11,.22,.11,2.29,z,chairLeather,chair,.03);
+      box(.08,.025,.04,.18,2.235,z,metal,chair,.004);
+      const hinge=cylinder(.105,.07,-.6,1.74,z*.82,graphite,chair);hinge.rotation.x=Math.PI/2;
+    }
+    tube([[.04,1.41,.45],[.28,1.32,.74],[.46,1.32,.8]],.018,metal,chair);
+    box(.17,.045,.08,.46,1.32,.8,graphite,chair,.01);
+    for(let i=0;i<5;i++){
+      const a=i*Math.PI*2/5,leg=box(1.02,.095,.13,Math.cos(a)*.47,.27,Math.sin(a)*.47,graphite,chair,.018);leg.rotation.y=-a;
+      const caster=new T.Group();caster.position.set(Math.cos(a)*.94,.14,Math.sin(a)*.94);caster.rotation.y=-a;chair.add(caster);
+      box(.08,.12,.12,0,.07,0,metal,caster,.012);
+      for(const z of [-.07,.07]){const wheel=cylinder(.1,.055,0,0,z,graphite,caster);wheel.rotation.x=Math.PI/2;}
+    }
     // Wall fan centered over the gap between desk end (-0.95 ft) and bed foot (-0.6 ft).
     const fanWallZ=(-.95-.6)/2;
     const fanMount=new T.Group();fanMount.name='wall-fan-mount';model.add(fanMount);
@@ -689,7 +725,7 @@
         renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
       }else renderer.render(scene,camera);
     }
-    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'back room only: simple warm off-white PVC panels concealing gatar-patiya, slim perimeter tray with warm cove glow and six recessed downlights',lighting:evening?'warm recessed ceiling lights, perimeter cove glow and bedside lamp':'daylight with soft warm ceiling lights and bedside lamp',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{pc:'desktop tower below the desk on a low riser at the far end, mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'silver MacBook Air M2, black keyboard, large trackpad, notched display, MagSafe and two USB-C ports, open on raised aluminum holder',displays:'reference-style curved black monitor with slim bezels and round base, tilted backward 10 degrees, macOS-style desktop on monitor and MacBook; 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'staggered 75-percent keyboard with shaped keycaps and legends, sculpted wireless mouse with split buttons and wheel, soundbar, remote, USB ports and cable tray; clear desk without lamp or wall accessories organizer'},storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Individual anime reference decor cutouts over continuous peach plaster, raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
+    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'back room only: simple warm off-white PVC panels concealing gatar-patiya, slim perimeter tray with warm cove glow and six recessed downlights',lighting:evening?'warm recessed ceiling lights, perimeter cove glow and bedside lamp':'daylight with soft warm ceiling lights and bedside lamp',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{chair:'black and muted red racing-style gaming chair, high back, headrest and lumbar cushions, side bolsters, adjustable arms and five twin casters',pc:'desktop tower below the desk on a low riser at the far end, mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'silver MacBook Air M2, black keyboard, large trackpad, notched display, MagSafe and two USB-C ports, open on raised aluminum holder',displays:'reference-style curved black monitor with slim bezels and round base, rotated sideways 15 degrees and tilted backward 10 degrees, macOS-style desktop on monitor and MacBook; 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'staggered 75-percent keyboard with shaped keycaps and legends, sculpted wireless mouse with split buttons and wheel, soundbar, remote, USB ports and cable tray; clear desk without lamp or wall accessories organizer'},storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Individual anime reference decor cutouts over continuous peach plaster, raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
     function interiorView(){return ['inside','gallery','ceiling','storage'].includes(view);}
     const resize=new ResizeObserver(()=>{const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);const size=renderer.getDrawingBufferSize(new T.Vector2());if(usePostProcessing){renderTarget.setSize(size.x,size.y);postMat.uniforms.resolution.value.copy(size);}camera.aspect=w/h;camera.updateProjectionMatrix();draw();});resize.observe(stage);
     root.querySelector('[data-view-select]').addEventListener('change',e=>{view=e.target.value;phi=view==='top'?.025:.99;theta=view==='top'?0:-.5;distance=34;if(view==='inside'){walkPosition.set(0,5.25,0);insideYaw=0;insidePitch=0;}if(['front','stairs','wash','balcony'].includes(view)){const presets={front:[0,22.8,0],stairs:[-3.9,7.45,0],wash:[0,16,-0.45],balcony:[0,34,0]};const [x,z,yaw]=presets[view];walkPosition.set(x,5.25,z);insideYaw=yaw;insidePitch=e.target.value==='wash'?-.35:e.target.value==='balcony'?-.6:e.target.value==='stairs'?-.55:e.target.value==='front'?-.15:0;view='inside';distance=34;}if(view==='gallery'){walkPosition.set(0,5.25,0);insideYaw=-2.15;insidePitch=-.28;distance=34;}if(view==='ceiling'){insideYaw=2.35;insidePitch=.78;}if(view==='storage'){insideYaw=.15;insidePitch=-.18;}draw();save();});
