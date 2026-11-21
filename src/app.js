@@ -8,12 +8,14 @@
     renderer.setPixelRatio(Math.min(devicePixelRatio,2));
     renderer.shadowMap.enabled=true;
     renderer.shadowMap.type=T.PCFSoftShadowMap;
+    renderer.shadowMap.autoUpdate=false;
+    let shadowState='';
     renderer.outputColorSpace=T.SRGBColorSpace;
     renderer.toneMapping=T.ACESFilmicToneMapping;
     renderer.toneMappingExposure=1.02;
     stage.appendChild(renderer.domElement);
     const scene=new T.Scene();
-    const camera=new T.PerspectiveCamera(39,1,.08,150);
+    const camera=new T.PerspectiveCamera(39,1,.08,400);
     const model=new T.Group(); scene.add(model);
     const mat=(color,roughness=.7)=>new T.MeshStandardMaterial({color,roughness});
     const plaster=mat('#eeeae3'), edge=mat('#554a3e'), tile=mat('#d5c4a9'), seam=mat('#b5a38b');
@@ -406,6 +408,7 @@
     for(let i=0;i<6;i++)box(2.58,.018,.06,0,6.87+i*.025,-5.23,metal,back);
     box(2.96,.012,.012,0,7.14,-5.265,frame,back);box(.06,.018,.012,1.2,6.98,-5.26,led,back);
     const lampBase=cylinder(.22,.04,3.75,2.64,-1.3,metal);sphere(3.75,2.93,-1.3,.23,.25,.23,led);
+    const floorExtension=window.buildFloorExtension(T,model,{box,cylinder,sphere,tube,mat,plaster,oak,cream,metal,glass,tile,chrome,linen});
     const ambient=new T.HemisphereLight('#e8f2ff','#a59a87',.7);scene.add(ambient);
     const sun=new T.DirectionalLight('#fff1d6',2.6);sun.position.set(-3,11,12);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);sun.shadow.camera.left=-10;sun.shadow.camera.right=10;sun.shadow.camera.top=10;sun.shadow.camera.bottom=-10;sun.shadow.normalBias=.018;sun.shadow.bias=-.00015;sun.shadow.radius=3;scene.add(sun);
     const fill=new T.PointLight('#ffc675',32,18,2);fill.position.set(0,7,-4.5);scene.add(fill);
@@ -471,6 +474,8 @@
     if(roomState?.widgetState?.privateContent?.sofaVersion!==2){view='gallery';insideYaw=-2.15;insidePitch=-.28;distance=30.5;}
     if(roomState?.widgetState?.privateContent?.sofaFinishVersion!==2){view='gallery';insideYaw=-2.15;insidePitch=-.28;distance=30.5;sofaColor='dustyBlue';}
     if(typeof roomState?.widgetState?.privateContent?.fanRunning==='boolean')fanRunning=roomState.widgetState.privateContent.fanRunning&&!reducedMotion.matches;
+    const walkPosition=new T.Vector3(0,5.25,0);
+    view='inside';insideYaw=0;insidePitch=0;distance=18;
     function draw(){
       const inside=view==='inside',gallery=view==='gallery',ceilingView=view==='ceiling',storage=view==='storage',interior=inside||gallery||ceilingView||storage;
       sofaFabric.color.set(sofaPalettes[sofaColor].color);sofaPiping.color.copy(sofaFabric.color).multiplyScalar(.8);root.querySelector('[data-sofa-color]').value=sofaColor;
@@ -478,41 +483,82 @@
       root.querySelector('[data-tv-angle]').textContent=tvTilt+'°';root.querySelector('[data-tv-tilt]').value=tvTilt;
       door.visible=!gallery;
       camera.fov=gallery?T.MathUtils.radToDeg(2*Math.atan(Math.max(4.7,5.6/camera.aspect)*(distance/25.5)/5.97)):interior?60+(distance-15)*2:39;camera.updateProjectionMatrix();
-      if(interior){camera.position.set(0,5.25,0);camera.lookAt(Math.sin(insideYaw)*Math.cos(insidePitch),5.25+Math.sin(insidePitch),Math.cos(insideYaw)*Math.cos(insidePitch));}
-      else{const fit=Math.max(1, .92/camera.aspect);camera.position.set(distance*fit*Math.sin(phi)*Math.sin(theta),2.4+distance*fit*Math.cos(phi),distance*fit*Math.sin(phi)*Math.cos(theta));camera.lookAt(0,2.4,0);}
+      camera.up.set(0,view==='top'?0:1,view==='top'?1:0);
+      if(interior){camera.position.copy(inside?walkPosition:new T.Vector3(0,5.25,0));camera.lookAt(camera.position.x+Math.sin(insideYaw)*Math.cos(insidePitch),camera.position.y+Math.sin(insidePitch),camera.position.z+Math.cos(insideYaw)*Math.cos(insidePitch));}
+      else{const fit=Math.max(1, .92/camera.aspect),radius=distance*3.7;camera.position.set(radius*fit*Math.sin(phi)*Math.sin(theta),2.4+radius*fit*Math.cos(phi),15+radius*fit*Math.sin(phi)*Math.cos(theta));camera.lookAt(0,2.4,15);}
       walls.left.visible=interior||camera.position.x>.8;walls.right.visible=interior||camera.position.x<-.8;walls.back.visible=interior||camera.position.z>.8;
       animeReverseFaces.forEach(art=>art.visible=!walls.left.visible);
       bedArtReverse.forEach(art=>art.visible=!walls.back.visible);
       front.visible=interior||camera.position.z<-.8;frontLow.visible=!front.visible;curtains.visible=front.visible;ceiling.visible=interior;
-      windowAssembly.visible=true;
+      windowAssembly.visible=true;floorExtension.update(interior);
+      root.querySelector('.walk-controls').hidden=!inside;
+      const zone=(Math.abs(walkPosition.x)>6.3||walkPosition.z>36.3||walkPosition.z< -6.3)?'Outside':walkPosition.z<6.2?'Back room':walkPosition.z<20.2?(walkPosition.x>1.5||walkPosition.z<8.4?'Passage':walkPosition.z<14.2?'Stairs':walkPosition.x> -1.4?'Toilet':'Wash & shower'):walkPosition.z<32.2?'Front room':walkPosition.z<36.3?'Balcony':'Outside';
+      root.querySelector('[data-location]').textContent=interior?zone:'Whole floor';
       sun.intensity=evening?.08:2.8;ambient.intensity=evening?.38:.8;fill.intensity=evening?8:10;ledFill.intensity=evening?18:6;
       bedsideLight.intensity=evening?8:3;shadeMat.emissiveIntensity=evening?.45:.14;
       renderer.toneMappingExposure=evening?1.12:1.02;
       const lightButton=root.querySelector('[data-light]');lightButton.setAttribute('aria-pressed',String(evening));lightButton.setAttribute('aria-label',evening?'Switch to daylight':'Switch to evening lighting');lightButton.title=evening?'Daylight':'Evening lighting';lightButton.querySelector('use').setAttribute('href',evening?'#icon-moon':'#icon-sun');
       const fanButton=root.querySelector('[data-fan]');fanButton.setAttribute('aria-pressed',String(fanRunning));fanButton.setAttribute('aria-label',fanRunning?'Turn fan off':'Turn fan on');fanButton.title=fanRunning?'Fan on':'Fan off';
       root.querySelector('[data-zoom]').value=Math.round((34-distance)/19*100);
-      root.querySelector('[data-view-select]').value=view;
+      root.querySelector('[data-view-select]').value=inside?({ 'Front room':'front',Stairs:'stairs',Toilet:'wash','Wash & shower':'wash',Balcony:'balcony' }[zone]||'inside'):view;
       root.querySelector('[data-zoom-step="1"]').disabled=distance<=15;
       root.querySelector('[data-zoom-step="-1"]').disabled=distance>=34;
+      const nextShadowState=[view,evening,walls.left.visible,walls.right.visible,walls.back.visible,front.visible].join();
+      if(nextShadowState!==shadowState){renderer.shadowMap.needsUpdate=true;shadowState=nextShadowState;}
       renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
     }
-    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft',view,camera:interiorView()?'room center, eye level':'overview',ceiling:'exposed gatar-patiya, no ceiling lights',lighting:evening?'warm desk and bedside lamps':'daylight and warm lamps',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{pc:'desktop tower with mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'open on raised aluminum holder',displays:'main monitor plus 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'keyboard legends, mouse wheel, soundbar, remote, USB ports and cable tray'},storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Anime wall photo raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
+    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'exposed gatar-patiya, no ceiling lights',lighting:evening?'warm desk and bedside lamps':'daylight and warm lamps',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{pc:'desktop tower with mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'open on raised aluminum holder',displays:'main monitor plus 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'keyboard legends, mouse wheel, soundbar, remote, USB ports and cable tray'},storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Anime wall photo raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
     function interiorView(){return ['inside','gallery','ceiling','storage'].includes(view);}
     const resize=new ResizeObserver(()=>{const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);const size=renderer.getDrawingBufferSize(new T.Vector2());renderTarget.setSize(size.x,size.y);postMat.uniforms.resolution.value.copy(size);camera.aspect=w/h;camera.updateProjectionMatrix();draw();});resize.observe(stage);
-    root.querySelector('[data-view-select]').addEventListener('change',e=>{view=e.target.value;phi=view==='top'?.025:.99;theta=view==='top'?0:-.5;if(view==='inside'){insideYaw=2.35;insidePitch=.03;}if(view==='gallery'){insideYaw=-2.15;insidePitch=-.28;distance=30.5;}if(view==='ceiling'){insideYaw=2.35;insidePitch=.78;}if(view==='storage'){insideYaw=.15;insidePitch=-.18;}draw();save();});
+    root.querySelector('[data-view-select]').addEventListener('change',e=>{view=e.target.value;phi=view==='top'?.025:.99;theta=view==='top'?0:-.5;if(view==='top'||view==='room')distance=22;if(view==='inside'){walkPosition.set(0,5.25,0);insideYaw=0;insidePitch=0;}if(['front','stairs','wash','balcony'].includes(view)){const presets={front:[0,25,0],stairs:[3.9,10.8,-1.57],wash:[0,16,-0.45],balcony:[0,34,0]};const [x,z,yaw]=presets[view];walkPosition.set(x,5.25,z);insideYaw=yaw;insidePitch=e.target.value==='wash'?-.35:e.target.value==='balcony'?-.6:e.target.value==='stairs'?-.25:e.target.value==='front'?-.15:0;view='inside';distance=18;}if(view==='gallery'){walkPosition.set(0,5.25,0);insideYaw=-2.15;insidePitch=-.28;distance=30.5;}if(view==='ceiling'){insideYaw=2.35;insidePitch=.78;}if(view==='storage'){insideYaw=.15;insidePitch=-.18;}draw();save();});
     root.querySelectorAll('[data-turn]').forEach(b=>b.addEventListener('click',()=>{if(interiorView()){insideYaw-=Number(b.dataset.turn)*.3;view='inside';}else{theta+=Number(b.dataset.turn)*.3;}draw();save();}));
     root.querySelector('[data-light]').addEventListener('click',()=>{evening=!evening;draw();save();});
     root.querySelector('[data-fan]').addEventListener('click',()=>{fanRunning=!fanRunning;draw();save();});
     root.querySelector('[data-zoom]').addEventListener('input',e=>{distance=34-Number(e.target.value)/100*19;draw();});root.querySelector('[data-zoom]').addEventListener('change',save);
     root.querySelectorAll('[data-zoom-step]').forEach(button=>button.addEventListener('click',()=>{distance=Math.max(15,Math.min(34,distance-Number(button.dataset.zoomStep)*1.5));draw();save();}));
     root.querySelector('[data-tv-tilt]').addEventListener('input',e=>{tvTilt=Number(e.target.value);draw();});root.querySelector('[data-tv-tilt]').addEventListener('change',save);
-    root.querySelector('[data-sofa-color]').addEventListener('change',e=>{sofaColor=e.target.value;view='gallery';insideYaw=-2.15;insidePitch=-.28;distance=30.5;draw();save();});
+    root.querySelector('[data-sofa-color]').addEventListener('change',e=>{sofaColor=e.target.value;walkPosition.set(0,5.25,0);view='gallery';insideYaw=-2.15;insidePitch=-.28;distance=30.5;draw();save();});
     const options=root.querySelector('.room-options');
     document.addEventListener('pointerdown',e=>{if(options.open&&!options.contains(e.target))options.open=false;});
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&options.open){options.open=false;options.querySelector('summary').focus();}});
+    // Camera-relative movement: joystick, keyboard, and drag-to-look work together.
+    const movement={x:0,y:0},keys=new Set(),joystick=root.querySelector('[data-joystick]'),knob=root.querySelector('.joystick-knob');
+    let stickPointer=null;
+    function stopMovement(){movement.x=movement.y=0;keys.clear();stickPointer=null;knob.style.transform='translate(0px,0px)';}
+    function moveStick(e){const r=joystick.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2;const scale=Math.min(1,40/Math.max(1,Math.hypot(dx,dy)));movement.x=dx*scale/40;movement.y=-dy*scale/40;knob.style.transform=`translate(${dx*scale}px,${dy*scale}px)`;}
+    joystick.addEventListener('pointerdown',e=>{stickPointer=e.pointerId;joystick.setPointerCapture(e.pointerId);moveStick(e);});
+    joystick.addEventListener('pointermove',e=>{if(e.pointerId===stickPointer)moveStick(e);});
+    for(const event of ['pointerup','pointercancel','lostpointercapture'])joystick.addEventListener(event,stopMovement);
+    const movementKeys=['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight'];
+    window.addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA|BUTTON|SUMMARY/.test(e.target.tagName))return;if(movementKeys.includes(e.code)&&view==='inside'){e.preventDefault();keys.add(e.code);}});
+    window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',stopMovement);
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)stopMovement();});
+    // Wall collision includes clear doorways. Outside remains explorable at floor level.
+    const bedroomBarriers=[{x:-6.1,z:0,w:.18,d:12},{x:6.1,z:0,w:.18,d:12},{x:0,z:-6.1,w:12.4,d:.18},
+      {x:-6,z:6.1,w:.25,d:.18},{x:-1.3,z:6.1,w:3.15,d:.18},{x:3.15,z:6.1,w:5.7,d:.18}];
+    const barriers=[...bedroomBarriers,...floorExtension.barriers];
+    function blocked(x,z){return barriers.some(b=>Math.abs(x-b.x)<b.w/2+.18&&Math.abs(z-b.z)<b.d/2+.18);}
+    function walk(dt){
+      if(view!=='inside')return false;
+      let side=movement.x+(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0);
+      let forward=movement.y+(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0);
+      const magnitude=Math.hypot(side,forward);if(magnitude<.08)return false;
+      const step=dt*4.5/Math.max(1,magnitude);side*=step;forward*=step;
+      const x=T.MathUtils.clamp(walkPosition.x+Math.sin(insideYaw)*forward-Math.cos(insideYaw)*side,-18,18);
+      const z=T.MathUtils.clamp(walkPosition.z+Math.cos(insideYaw)*forward+Math.sin(insideYaw)*side,-15,48);
+      if(!blocked(x,walkPosition.z))walkPosition.x=x;if(!blocked(walkPosition.x,z))walkPosition.z=z;
+      // Eye level follows the two upper stair flights.
+      let elevation=0;const {x:px,z:pz}=walkPosition;
+      if(pz>=8.4&&pz<=13.9&&px<=1.4&&px>=-5.65){
+        if(pz>13.2)elevation=4.5;
+        else if(px> -1.65)elevation=T.MathUtils.clamp((pz-8.4)/4.8*4.5,0,4.5);
+        else if(px< -2.55)elevation=4.5+T.MathUtils.clamp((13.2-pz)/4.8*4.5,0,4.5);
+      }
+      walkPosition.y=5.25+elevation;return true;
+    }
     const pointers=new Map();let previousPinch=0;
     stage.addEventListener('pointerdown',e=>{stage.setPointerCapture(e.pointerId);pointers.set(e.pointerId,[e.clientX,e.clientY]);previousPinch=0;});
-    stage.addEventListener('pointermove',e=>{const old=pointers.get(e.pointerId);if(!old)return;pointers.set(e.pointerId,[e.clientX,e.clientY]);if(pointers.size===2){const a=[...pointers.values()],d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);if(previousPinch&&d>0)distance=Math.max(15,Math.min(34,distance*previousPinch/d));previousPinch=d;}else if(interiorView()){view='inside';insideYaw-=(e.clientX-old[0])*.005;insidePitch=Math.max(-1.1,Math.min(1.4,insidePitch+(e.clientY-old[1])*.004));}else{theta-=(e.clientX-old[0])*.007;phi=Math.max(.025,Math.min(1.42,phi+(e.clientY-old[1])*.005));view='room';}draw();});
+    stage.addEventListener('pointermove',e=>{const old=pointers.get(e.pointerId);if(!old)return;pointers.set(e.pointerId,[e.clientX,e.clientY]);if(pointers.size===2){const a=[...pointers.values()],d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);if(previousPinch&&d>0)distance=Math.max(15,Math.min(34,distance*previousPinch/d));previousPinch=d;}else if(interiorView()){view='inside';insideYaw-=(e.clientX-old[0])*.005;insidePitch=Math.max(-1.1,Math.min(1.4,insidePitch+(e.clientY-old[1])*.004));}else{theta-=(e.clientX-old[0])*.007;phi=Math.max(.025,Math.min(1.42,phi+(e.clientY-old[1])*.005));if(view!=='top')view='room';}draw();});
     function up(e){pointers.delete(e.pointerId);previousPinch=0;save();}stage.addEventListener('pointerup',up);stage.addEventListener('pointercancel',up);
     let wheelTimer;stage.addEventListener('wheel',e=>{e.preventDefault();distance=Math.max(15,Math.min(34,distance+e.deltaY*.015));draw();clearTimeout(wheelTimer);wheelTimer=setTimeout(save,250);},{passive:false});
     window.addEventListener('floor1:state',e=>{if(e.detail?.globals?.widgetState){restore(e.detail.globals.widgetState);const saved=e.detail.globals.widgetState.privateContent;const running=saved?.fanRunning;if(typeof running==='boolean')fanRunning=running&&!reducedMotion.matches;if(Number.isFinite(saved?.tvTilt))tvTilt=Math.max(0,Math.min(25,saved.tvTilt));if(Object.hasOwn(sofaPalettes,saved?.sofaColor))sofaColor=saved.sofaColor;draw();}});
@@ -523,7 +569,7 @@
     function animateFan(now){
       if(!root.isConnected){visibilityObserver.disconnect();resize.disconnect();return;}
       if(now-lastFrame>=1000/24){const dt=Math.min((now-lastFrame)/1000,.1);lastFrame=now;
-        if(fanRunning&&inView&&!document.hidden){fanTime+=dt;fanRotor.rotation.z=(fanRotor.rotation.z+dt*24)%(Math.PI*2);fanYaw.rotation.y=-Math.PI/2+Math.sin(fanTime*.72)*.58;draw();}
+        if(inView&&!document.hidden){const moving=walk(dt);if(fanRunning){fanTime+=dt;fanRotor.rotation.z=(fanRotor.rotation.z+dt*24)%(Math.PI*2);fanYaw.rotation.y=-Math.PI/2+Math.sin(fanTime*.72)*.58;}if(moving||fanRunning)draw();}
       }
       requestAnimationFrame(animateFan);
     }

@@ -1,6 +1,6 @@
 # Floor 1
 
-An interactive 3D room design by **Suraj Rajput**.
+An interactive 3D first-floor design by **Suraj Rajput**.
 
 A 12 × 12 ft bedroom and workspace with a dusty blue L-shaped sofa, anime feature wall, neutral frames below the AC, exposed gatar-patiya ceiling, wardrobe, bedside drawers, charging point, detailed PC setup, laptop holder and an adjustable TV-style screen.
 
@@ -13,7 +13,7 @@ npm run check
 npm run dev
 ```
 
-Open the local URL printed by the server. Drag to look around, scroll or pinch to zoom, or choose a view from the compact toolbar. Icons control rotation, zoom, lighting and the fan. Open settings for sofa color, the zoom slider and TV tilt. Preferences are saved in the current browser.
+Open the local URL printed by the server. Each load starts at the center of the completed back room. Drag the circular joystick to walk, or use WASD / arrow keys; drag the scene to look around. Walk through the existing door into the passage, stairs, WC and shower/wash area, front lounge and empty balcony (flooring and railing only). The view selector includes room shortcuts, whole-floor overview and top view. Scroll or pinch to zoom. Icons control rotation, zoom, lighting and the fan. Open settings for sofa color, the zoom slider and TV tilt. Preferences are saved in the current browser.
 
 ## Build and deploy
 
@@ -28,11 +28,14 @@ The site is fully static. Three.js 0.160.1 is vendored under `vendor/`, and the 
 
 ## Source
 
-- `src/app.js`: geometry, materials, lights, camera and interactions.
+- `src/app.js`: original back-room geometry, materials, lights, walkthrough camera and interactions.
+- `src/floor-extension.js`: added stairs, Western WC, wash/shower, front lounge and empty balcony (flooring and railing only).
 - `src/room-markup.html`: controls and scene mount.
 - `src/room.css`, `src/site.css`: responsive layout.
 - `src/state.js`: browser-local preference storage.
 - `scripts/build.mjs`: portable static build.
+
+The new areas follow the supplied floor sketch with assumed 12 ft width, 14 ft service/passage zone, 12 ft front room and 4 ft balcony. The existing back-room furnishings and finishes are preserved. The ground-floor stair is an entry reference; there is no ground-floor or second-floor interior. Exterior exploration remains at first-floor level.
 
 The room is a design visualization; furniture proportions and ceiling construction are approximate. The TV is an interactive model, not an actual streaming client.
 

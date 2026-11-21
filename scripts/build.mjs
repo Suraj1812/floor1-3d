@@ -10,7 +10,7 @@ const shell = await readFile(path.join(root, 'src/page-shell.html'), 'utf8');
 const markup = await readFile(path.join(root, 'src/room-markup.html'), 'utf8');
 if (!shell.includes('<!-- ROOM_MARKUP -->')) throw new Error('Room mount is missing.');
 await writeFile(path.join(output, 'index.html'), shell.replace('<!-- ROOM_MARKUP -->', markup));
-for (const file of ['app.js', 'state.js', 'site.css', 'room.css']) {
+for (const file of ['app.js', 'floor-extension.js', 'state.js', 'site.css', 'room.css']) {
   await cp(path.join(root, 'src', file), path.join(output, file));
 }
 for (const directory of ['assets', 'vendor']) {

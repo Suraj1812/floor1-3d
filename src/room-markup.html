@@ -11,11 +11,16 @@
     <symbol id="icon-fan" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M10.2 10.8C5 10 4.5 5.5 8 4s5.6 1 4.9 6M13.8 10.8c3.3-4.1 7.5-2.5 7.1 1.3S17 16.5 13 13.6M12 14c1.7 5-1.7 7.9-4.8 5.7S5.3 14.3 10.2 13"/></symbol>
     <symbol id="icon-settings" viewBox="0 0 24 24"><path d="M4 7h7m4 0h5M4 17h3m4 0h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
   </defs></svg>
-  <div class="room-stage" role="img" aria-label="Interactive 3D room. Drag to look around and scroll or pinch to zoom. Use the toolbar to choose a view or adjust the room."></div>
+  <div class="room-stage" role="img" aria-label="Interactive first floor. Drag to look around. Move with the joystick or W A S D keys. Use the toolbar to choose a view."></div>
+  <div class="floor-heading"><span>FLOOR 01</span><strong data-location>Back room</strong><small>Concept layout · dimensions approximate</small></div>
+  <div class="walk-controls">
+    <div class="joystick" data-joystick role="group" aria-label="Movement joystick. Drag to walk. Keyboard alternative: W A S D or arrow keys."><span class="joystick-cross">↑<br>← &nbsp; →<br>↓</span><span class="joystick-knob"></span></div>
+    <div class="walk-hint">Drag circle to walk<span>Drag scene to look · WASD / arrows</span></div>
+  </div>
   <div class="room-toolbar" role="group" aria-label="Room controls">
     <div class="view-field select-field">
       <svg class="icon field-icon" aria-hidden="true"><use href="#icon-view"/></svg>
-      <select data-view-select aria-label="Room view"><option value="inside">Room center</option><option value="room">Overview</option><option value="storage">Bed &amp; storage</option><option value="gallery">Sofa &amp; anime</option><option value="ceiling">Ceiling</option><option value="top">Top view</option></select>
+      <select data-view-select aria-label="Room view"><option value="inside">Back room · start</option><option value="front">Front room</option><option value="stairs">Stairs</option><option value="wash">Toilet &amp; shower</option><option value="balcony">Balcony</option><option value="room">Whole floor</option><option value="storage">Bed &amp; storage</option><option value="gallery">Sofa &amp; anime</option><option value="ceiling">Ceiling</option><option value="top">Top view</option></select>
       <svg class="icon select-chevron" aria-hidden="true"><use href="#icon-chevron"/></svg>
     </div>
     <div class="dock-group rotate-controls" role="group" aria-label="Rotate">
