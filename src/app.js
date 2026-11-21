@@ -396,8 +396,8 @@
     box(1.65,.78,.055,0,0,0,metal,switchboard,.018);
     box(1.61,.74,.025,0,0,.04,boardWhite,switchboard,.01);
     const boardSwitches=[];
-    for(const [i,key] of ['ceiling','cove','fan','desk'].entries()){
-      const x=-.57+i*.38;
+    for(const [i,key] of ['cove','fan','desk'].entries()){
+      const x=-.5+i*.5;
       box(.24,.28,.012,x,.14,.06,boardInset,switchboard,.004);
       const rocker=box(.2,.245,.033,x,.14,.083,boardWhite,switchboard,.008);
       rocker.userData.circuit=key;boardSwitches.push(rocker);
@@ -414,7 +414,7 @@
     for(const x of [-.76,.76]){const screw=cylinder(.013,.009,x,0,.059,metal,switchboard);screw.rotation.x=Math.PI/2;}
     const boardLabels=document.createElement('canvas');boardLabels.width=1100;boardLabels.height=520;
     const sq=boardLabels.getContext('2d');sq.textAlign='center';sq.fillStyle='#46504d';sq.font='22px sans-serif';
-    ['LIGHTS','COVE','FAN','DESK'].forEach((label,i)=>sq.fillText(label,(-.57+i*.38)/1.65*1100+550,62));
+    ['COVE','FAN','DESK'].forEach((label,i)=>sq.fillText(label,(-.5+i*.5)/1.65*1100+550,62));
     sq.font='18px sans-serif';sq.fillText('POWER',210,492);sq.fillText('POWER',550,492);sq.fillText('USB',890,492);
     const labelMap=new T.CanvasTexture(boardLabels);labelMap.colorSpace=T.SRGBColorSpace;
     const boardText=new T.Mesh(new T.PlaneGeometry(1.65,.78),new T.MeshStandardMaterial({map:labelMap,transparent:true,depthWrite:false,roughness:.8}));boardText.position.z=.058;switchboard.add(boardText);
@@ -717,11 +717,9 @@
     }
     for(const z of [-5.96,5.96])box(12,.065,.08,0,7.955,z,pvc,pvcFinish);
     for(const x of [-5.96,5.96])box(.08,.065,11.84,x,7.955,0,pvc,pvcFinish);
-    // A shallow perimeter tray and six flush downlights dress only the back room.
+    // Cove lighting alone keeps the back-room PVC ceiling clean and uninterrupted.
     const ceilingGlow=new T.MeshStandardMaterial({color:'#fff0d6',emissive:'#ffdcaa',emissiveIntensity:2.4,roughness:.38});
-    const lightBezel=mat('#e8e3da',.32),lightRecess=mat('#746d61',.8);
-    const downlightLens=new T.MeshStandardMaterial({color:'#fff5e5',emissive:'#ffe6c4',emissiveIntensity:7,roughness:.7});
-    const ceilingDownlights=[];
+    const coveLights=[];
     for(const z of [-5.8,5.8]){
       box(12,.12,.4,0,7.82,z,pvc,pvcFinish);
       box(11.2,.035,.045,0,7.88,z>0?5.575:-5.575,ceilingGlow,pvcFinish);
@@ -730,16 +728,12 @@
       box(.4,.12,11.2,x,7.82,0,pvc,pvcFinish);
       box(.045,.035,11.2,x>0?5.575:-5.575,7.88,0,ceilingGlow,pvcFinish);
     }
-    for(const x of [-3.65,3.65])for(const z of [-3.75,0,3.75]){
-      cylinder(.165,.025,x,7.95,z,lightBezel,pvcFinish);
-      cylinder(.133,.012,x,7.932,z,lightRecess,pvcFinish);
-      const lens=cylinder(.112,.012,x,7.922,z,downlightLens,pvcFinish);lens.castShadow=false;
-      const downlight=new T.SpotLight('#ffe5bf',24,11,Math.PI/3,.7,2);
-      downlight.position.set(x,7.89,z);downlight.target.position.set(x,0,z);
-      pvcFinish.add(downlight,downlight.target);ceilingDownlights.push(downlight);
+    // Broad sources follow the strip around the perimeter, with no central lights.
+    for(const [x,z] of [[-5.55,-2.8],[-5.55,2.8],[5.55,-2.8],[5.55,2.8],[-2.8,-5.55],[2.8,-5.55],[-2.8,5.55],[2.8,5.55]]){
+      const light=new T.SpotLight('#ffe3ba',8,13,Math.PI/2.8,1,2);
+      light.position.set(x,7.84,z);light.target.position.set(x*.5,1,z*.5);
+      pvcFinish.add(light,light.target);coveLights.push(light);
     }
-    // The strip stays softly luminous; no detached point sources at side midpoints.
-    // Room illumination comes from the six spotlights beneath their visible lenses.
     // Soft reflection environment provides highlights on wood, glass and metal.
     const envScene=new T.Scene();envScene.background=new T.Color('#bcb7ac');
     const envRoom=new T.Mesh(new T.BoxGeometry(30,20,30),new T.MeshBasicMaterial({color:'#c9c6bc',side:T.BackSide}));envScene.add(envRoom);
@@ -779,7 +773,7 @@
     }
     const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
     let fanRunning=!reducedMotion.matches,fanTime=0;
-    const circuits={ceiling:true,cove:true,desk:true};
+    const circuits={cove:true,desk:true};
     function restoreCircuits(saved){for(const key of Object.keys(circuits))if(typeof saved?.circuits?.[key]==='boolean')circuits[key]=saved.circuits[key];}
     restoreCircuits(roomState?.widgetState?.privateContent);
     const switchedOffScreen=mat('#0c1114',.4),tvOnMaterial=tvScreen.material;
@@ -817,8 +811,7 @@
       root.querySelector('.walk-controls').hidden=!inside;
       const zone=(Math.abs(walkPosition.x)>6.3||walkPosition.z>36.3||walkPosition.z< -6.3)?'Outside':walkPosition.z<6.2?'Back room':walkPosition.z<20.2?(walkPosition.x>1.5||walkPosition.z<8.4?'Passage':walkPosition.z<14.2?'Stairs':walkPosition.x> -1.4?'Toilet':'Wash & shower'):walkPosition.z<32.2?'Front room':walkPosition.z<36.3?'Balcony':'Outside';
       sun.intensity=evening?.08:2.8;ambient.intensity=evening?.38:.8;
-      ceilingDownlights.forEach(light=>light.intensity=circuits.ceiling?(evening?24:9):0);
-      downlightLens.emissiveIntensity=circuits.ceiling?(evening?8:5):0;
+      coveLights.forEach(light=>light.intensity=circuits.cove?(evening?8:2):0);
       ceilingGlow.emissiveIntensity=circuits.cove?(evening?1.4:.8):0;
       curvedScreen.material=circuits.desk?pcScreen:switchedOffScreen;tvScreen.material=circuits.desk?tvOnMaterial:switchedOffScreen;
       for(const rocker of boardSwitches){const on=rocker.userData.circuit==='fan'?fanRunning:circuits[rocker.userData.circuit];rocker.rotation.x=on?-.1:.1;rocker.userData.indicator.visible=on;}
@@ -837,7 +830,7 @@
         renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
       }else renderer.render(scene,camera);
     }
-    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'back room only: simple warm off-white PVC panels concealing gatar-patiya, slim perimeter tray with warm cove glow and six recessed downlights',lighting:evening?'warm recessed ceiling lights, perimeter cove glow and bedside lamp':'daylight with soft warm ceiling lights and bedside lamp',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{chair:'black and muted red racing-style gaming chair, high back, headrest and lumbar cushions, side bolsters, adjustable arms and five twin casters',pc:'desktop tower below the desk on a low riser at the far end, mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'silver MacBook Air M2, black keyboard, large trackpad, notched display, MagSafe and two USB-C ports, open on raised aluminum holder',displays:'reference-style curved black monitor with slim bezels and round base, rotated sideways 15 degrees and tilted backward 10 degrees, independent Windows-style PC desktop with blue silk wallpaper and dark code editor; MacBook retains its macOS-style landscape wallpaper; 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'staggered 75-percent keyboard with shaped keycaps and legends, sculpted wireless mouse with split buttons and wheel, soundbar, remote, USB ports and cable tray; clear desk without lamp or wall accessories organizer'},bed:'simple bed with warm off-white fitted sheet, duvet linked to the selected sofa theme, matching pale pillow, gentle folds and short side drape',storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Individual anime reference decor cutouts over continuous peach plaster, raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{circuits:{...circuits},version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
+    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'back room only: simple warm off-white PVC panels concealing gatar-patiya, slim perimeter tray with warm cove lighting only',lighting:evening?'warm perimeter cove lighting and bedside lamp':'daylight with soft cove lighting and bedside lamp',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{chair:'black and muted red racing-style gaming chair, high back, headrest and lumbar cushions, side bolsters, adjustable arms and five twin casters',pc:'desktop tower below the desk on a low riser at the far end, mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'silver MacBook Air M2, black keyboard, large trackpad, notched display, MagSafe and two USB-C ports, open on raised aluminum holder',displays:'reference-style curved black monitor with slim bezels and round base, rotated sideways 15 degrees and tilted backward 10 degrees, independent Windows-style PC desktop with blue silk wallpaper and dark code editor; MacBook retains its macOS-style landscape wallpaper; 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'staggered 75-percent keyboard with shaped keycaps and legends, sculpted wireless mouse with split buttons and wheel, soundbar, remote, USB ports and cable tray; clear desk without lamp or wall accessories organizer'},bed:'simple bed with warm off-white fitted sheet, duvet linked to the selected sofa theme, matching pale pillow, gentle folds and short side drape',storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Individual anime reference decor cutouts over continuous peach plaster, raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{circuits:{...circuits},version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
     function interiorView(){return ['inside','gallery','ceiling','storage'].includes(view);}
     const resize=new ResizeObserver(()=>{const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);const size=renderer.getDrawingBufferSize(new T.Vector2());if(usePostProcessing){renderTarget.setSize(size.x,size.y);postMat.uniforms.resolution.value.copy(size);}camera.aspect=w/h;camera.updateProjectionMatrix();draw();});resize.observe(stage);
     root.querySelector('[data-view-select]').addEventListener('change',e=>{view=e.target.value;phi=view==='top'?.025:.99;theta=view==='top'?0:-.5;distance=34;if(view==='inside'){walkPosition.set(0,5.25,0);insideYaw=0;insidePitch=0;}if(['front','stairs','wash','balcony'].includes(view)){const presets={front:[0,22.8,0],stairs:[-3.9,7.45,0],wash:[0,16,-0.45],balcony:[0,34,0]};const [x,z,yaw]=presets[view];walkPosition.set(x,5.25,z);insideYaw=yaw;insidePitch=e.target.value==='wash'?-.35:e.target.value==='balcony'?-.6:e.target.value==='stairs'?-.55:e.target.value==='front'?-.15:0;view='inside';distance=34;}if(view==='gallery'){walkPosition.set(0,5.25,0);insideYaw=-2.15;insidePitch=-.28;distance=34;}if(view==='ceiling'){insideYaw=2.35;insidePitch=.78;}if(view==='storage'){insideYaw=.15;insidePitch=-.18;}draw();save();});
