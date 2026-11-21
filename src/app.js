@@ -160,16 +160,34 @@
     box(.85,1.15,1.15,5.25,1.87,-1.75,oak,model,.03);
     for(const y of [1.55,1.95,2.3])box(.34,.025,.04,5.25,y,-1.16,metal);
     box(.55,.04,.8,5.22,2.62,-3.65,metal,model,.03);box(.07,.65,.13,5.47,2.96,-3.65,metal);
-    box(.13,1.33,2.3,5.45,3.65,-3.65,graphite,model,.04);
+    const monitorPivot=new T.Group();monitorPivot.name='main-monitor-backward-tilt-10-degrees';
+    monitorPivot.position.set(5.45,3.65,-3.65);monitorPivot.rotation.z=-Math.PI/18;model.add(monitorPivot);
+    box(.09,1.33,2.3,0,0,0,graphite,monitorPivot,.025);
+    box(.07,.55,.7,.06,-.15,0,graphite,monitorPivot,.012);
     const screen=new T.MeshStandardMaterial({color:'#285c78',emissive:'#173f63',emissiveIntensity:.5,roughness:.3});
     const displayCanvas=document.createElement('canvas');displayCanvas.width=768;displayCanvas.height=432;const dq=displayCanvas.getContext('2d');
-    const dg=dq.createLinearGradient(0,0,768,432);dg.addColorStop(0,'#101f39');dg.addColorStop(.45,'#245a6b');dg.addColorStop(1,'#a68169');dq.fillStyle=dg;dq.fillRect(0,0,768,432);
-    for(let i=0;i<8;i++){dq.strokeStyle=`rgba(184,221,222,${.05+i*.013})`;dq.lineWidth=15;dq.beginPath();dq.moveTo(-60,380+i*25);dq.bezierCurveTo(300,420-i*30,430,-80+i*20,860,40+i*32);dq.stroke();}
-    dq.fillStyle='rgba(14,24,36,.65)';dq.fillRect(0,407,768,25);for(let i=0;i<7;i++){dq.fillStyle=['#a0c3ce','#b0bdc4','#d5c5aa'][i%3];dq.fillRect(270+i*31,414,14,12);}
-    const displayMap=new T.CanvasTexture(displayCanvas);displayMap.colorSpace=T.SRGBColorSpace;screen.color.set('#ffffff');screen.map=displayMap;screen.emissiveMap=displayMap;screen.emissive.set('#ffffff');screen.emissiveIntensity=.35;
-    box(.015,1.18,2.12,5.365,3.66,-3.65,screen);
+    // Calm macOS-inspired desktop, with a proper menu bar and dock rather than blocks.
+    const dg=dq.createLinearGradient(0,0,768,432);dg.addColorStop(0,'#23324f');dg.addColorStop(.5,'#627f8a');dg.addColorStop(1,'#c7b8a6');dq.fillStyle=dg;dq.fillRect(0,0,768,432);
+    for(let i=0;i<5;i++){
+      const hill=dq.createLinearGradient(0,140+i*38,0,432);hill.addColorStop(0,['#54757b','#42636c','#34565e','#29474f','#213c43'][i]);hill.addColorStop(1,'#1b333b');
+      dq.fillStyle=hill;dq.beginPath();dq.moveTo(0,240+i*35);dq.bezierCurveTo(180,70+i*47,450,380-i*23,768,180+i*42);dq.lineTo(768,432);dq.lineTo(0,432);dq.fill();
+    }
+    dq.fillStyle='rgba(238,241,243,.25)';dq.fillRect(0,0,768,22);
+    dq.fillStyle='#f6f7f7';dq.font='bold 11px sans-serif';dq.fillText('●   Finder',12,15);dq.font='10px sans-serif';dq.fillText('File    Edit    View    Go    Window    Help',84,15);dq.fillText('Wi-Fi   100%    Sat  7:50 PM',602,15);
+    dq.fillStyle='rgba(227,234,236,.35)';dq.beginPath();dq.roundRect(181,374,406,49,13);dq.fill();
+    const appColors=['#77b8ef','#e6e9ec','#5bb9df','#f2f1e8','#4ba674','#f2ece3','#e6a948','#2b3948','#7792a3'];
+    const appGlyphs=['F','◎','↗','✉','▣','21','♪','>_','⚙'];
+    for(let i=0;i<appColors.length;i++){
+      const x=192+i*43;dq.fillStyle=appColors[i];dq.beginPath();dq.roundRect(x,382,34,33,8);dq.fill();
+      dq.fillStyle=i===3||i===5?'#5d6368':'#fff';dq.font='bold 18px sans-serif';dq.textAlign='center';dq.fillText(appGlyphs[i],x+17,405);dq.textAlign='left';
+    }
+    for(const [y,label] of [[62,'Work'],[124,'Personal']]){
+      dq.fillStyle='#69a9ce';dq.fillRect(697,y,30,22);dq.fillRect(697,y-4,13,6);dq.fillStyle='#f4f5f4';dq.font='10px sans-serif';dq.textAlign='center';dq.fillText(label,712,y+35);dq.textAlign='left';
+    }
+    const displayMap=new T.CanvasTexture(displayCanvas);displayMap.colorSpace=T.SRGBColorSpace;screen.color.set('#ffffff');screen.map=displayMap;screen.emissiveMap=displayMap;screen.emissive.set('#ffffff');screen.emissiveIntensity=.22;displayMap.anisotropy=renderer.capabilities.getMaxAnisotropy();
+    box(.008,1.22,2.18,-.052,.015,0,screen,monitorPivot);
     // Raised aluminum laptop stand with an open, angled laptop.
-    const laptopStand=new T.Group();laptopStand.name='laptop-on-raised-holder';laptopStand.position.set(4.85,2.59,-1.9);laptopStand.rotation.y=-Math.PI/2;model.add(laptopStand);
+    const laptopStand=new T.Group();laptopStand.name='silver-macbook-air-m2-on-raised-holder';laptopStand.position.set(4.85,2.59,-1.9);laptopStand.rotation.y=-Math.PI/2;model.add(laptopStand);
     box(.87,.035,.62,0,.025,0,metal,laptopStand,.012);
     for(const x of [-.34,.34]){
       const strut=box(.055,.4,.065,x,.235,-.03,metal,laptopStand,.01);strut.rotation.x=-.32;
@@ -177,16 +195,30 @@
       box(.07,.07,.055,x,.43,.26,graphite,laptopStand,.008);
     }
     const laptopBase=new T.Group();laptopBase.position.y=.47;laptopBase.rotation.x=.12;laptopStand.add(laptopBase);
-    box(1.14,.035,.78,0,0,0,metal,laptopBase,.012);
+    const macSilver=new T.MeshStandardMaterial({color:'#bdc2c4',metalness:.8,roughness:.32});
+    const macKeys=mat('#202426',.77);
+    box(1.14,.033,.8,0,0,0,macSilver,laptopBase,.009);
     box(.99,.008,.38,0,.023,-.08,graphite,laptopBase,.005);
-    for(let row=0;row<5;row++)for(let col=0;col<12;col++)box(.061,.008,.048,-.435+col*.079,.032,-.224+row*.067,cream,laptopBase,.002);
-    box(.3,.005,.16,0,.025,.225,graphite,laptopBase,.004);
+    for(let row=0;row<5;row++)for(let col=0;col<13;col++){
+      box(.059,.009,row===0?.032:.045,-.447+col*.074,.03,-.237+row*.062,macKeys,laptopBase,.003);
+      if(row>0)box(.015,.001,.003,-.447+col*.074,.035,-.237+row*.062,cream,laptopBase);
+    }
+    box(.29,.01,.038,0,.03,.055,macKeys,laptopBase,.003);
+    box(.39,.003,.23,0,.019,.235,metal,laptopBase,.006);
+    box(.38,.002,.22,0,.021,.235,macSilver,laptopBase,.005);
+    sphere(.444,.036,-.237,.017,.002,.017,graphite,laptopBase);
+    for(const x of [-.38,.38])box(.09,.018,.035,x,.014,-.37,macSilver,laptopBase,.004);
+    box(.12,.004,.013,0,.019,.392,metal,laptopBase,.003);
     const laptopLid=new T.Group();laptopLid.position.set(0,.015,-.35);laptopLid.rotation.x=-.18;laptopBase.add(laptopLid);
-    box(1.14,.77,.035,0,.385,0,metal,laptopLid,.01);
-    box(1.08,.71,.012,0,.385,.024,graphite,laptopLid,.004);
-    const laptopFace=new T.Mesh(new T.PlaneGeometry(1.015,.64),screen);laptopFace.position.set(0,.39,.032);laptopLid.add(laptopFace);
-    sphere(0,.748,.038,.009,.009,.005,graphite,laptopLid);
-    for(const z of [-.2,-.05,.11])box(.012,.012,.055,-.577,.004,z,graphite,laptopBase);
+    box(1.14,.745,.025,0,.3725,0,macSilver,laptopLid,.007);
+    box(1.1,.711,.008,0,.374,.018,graphite,laptopLid,.004);
+    const laptopFace=new T.Mesh(new T.PlaneGeometry(1.068,.694),screen);laptopFace.position.set(0,.374,.024);laptopLid.add(laptopFace);
+    box(.095,.03,.005,0,.707,.028,graphite,laptopLid,.003);
+    sphere(0,.708,.033,.006,.006,.002,mat('#15232c',.2),laptopLid);
+    // M2 Air port layout: magnetic charging and two USB-C ports on the left.
+    box(.008,.012,.08,-.572,0,-.29,metal,laptopBase,.002);
+    for(const z of [-.155,-.05])box(.008,.011,.041,-.572,0,z,macKeys,laptopBase,.002);
+    const headphoneJack=cylinder(.008,.008,.572,0,-.22,macKeys,laptopBase);headphoneJack.rotation.z=Math.PI/2;
     tube([[5.34,2.98,-1.95],[5.62,2.9,-2.05],[5.72,2.35,-2.7],[5.92,.5,-4]],.012,graphite);
     const deskMat=mat('#424744');deskMat.map=clothMap;box(1.3,.018,2.25,4.15,2.596,-3.5,deskMat,model,.006);
     tube([[5.44,3.1,-3.6],[5.65,2.65,-3.9],[5.75,2,-4.2],[5.8,.35,-4.2],[5.96,.25,-4]],.018,graphite);
@@ -194,7 +226,9 @@
     box(.035,.35,.35,-2.5,4,5.98,cream,front,.02);box(.015,.19,.12,-2.5,4,5.95,frame,front,.01);
     cylinder(.1,.34,5.55,2.77,-2.3,graphite);for(let i=0;i<4;i++){const pencil=cylinder(.009,.45,5.55+(i%2)*.045,3.03,-2.3+Math.floor(i/2)*.045,oak);pencil.rotation.z=(i-2)*.09;}
     // Detailed desktop PC tower at the far end of the desk; no RGB lighting.
-    const pc=new T.Group();pc.name='desktop-cpu-tower';pc.position.set(4.92,2.64,-5.25);model.add(pc);
+    const pc=new T.Group();pc.name='desktop-cpu-tower';pc.position.set(4.92,.12,-5.25);model.add(pc);
+    // Low riser keeps the tower off the floor at the desk's far end.
+    box(1.42,.08,.87,4.92,.065,-5.25,metal,model,.012);
     box(1.3,1.66,.75,0,.87,0,graphite,pc,.035);
     for(const x of [-.49,.49])for(const z of [-.27,.27])box(.11,.055,.1,x,.01,z,metal,pc,.008);
     const grille=mat('#171d20',.9);grille.map=meshMap;grille.bumpMap=meshMap;grille.bumpScale=.008;
@@ -221,7 +255,8 @@
     sphere(-.46,1.72,-.21,.045,.009,.045,chrome,pc);
     for(const z of [-.05,.12])box(.012,.025,.065,-.684,1.58,z,metal,pc,.003);
     sphere(-.687,1.6,.27,.012,.018,.018,cream,pc);
-    tube([[5.58,2.88,-5.25],[5.8,2.75,-5.25],[5.81,1.3,-4.7],[5.94,.5,-4]],.018,graphite);
+    tube([[5.58,1.55,-5.25],[5.8,1.45,-5.25],[5.81,.45,-4.7],[5.94,.5,-4]],.018,graphite);
+    tube([[5.56,1.65,-5.16],[5.8,1.8,-5.2],[5.8,2.35,-4.8],[5.65,2.4,-4.2]],.012,graphite);
     // A proper compact keyboard: staggered rows, larger modifiers and spacebar.
     const keyboard=new T.Group();keyboard.name='detailed-75-percent-keyboard';keyboard.position.set(4.22,2.63,-3.72);keyboard.rotation.y=-Math.PI/2;model.add(keyboard);
     const keyDark=mat('#50565a',.72),keyLight=mat('#d0d1ca',.65),keyAccent=mat('#64796d',.7);
@@ -631,7 +666,7 @@
         renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
       }else renderer.render(scene,camera);
     }
-    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'back room only: simple warm off-white PVC panels concealing gatar-patiya, slim perimeter tray with warm cove glow and six recessed downlights',lighting:evening?'warm recessed ceiling lights, perimeter cove glow and bedside lamp':'daylight with soft warm ceiling lights and bedside lamp',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{pc:'desktop tower with mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'open on raised aluminum holder',displays:'main monitor plus 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'staggered 75-percent keyboard with shaped keycaps and legends, sculpted wireless mouse with split buttons and wheel, soundbar, remote, USB ports and cable tray; clear desk without lamp or wall accessories organizer'},storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Individual anime reference decor cutouts over continuous peach plaster, raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
+    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'back room only: simple warm off-white PVC panels concealing gatar-patiya, slim perimeter tray with warm cove glow and six recessed downlights',lighting:evening?'warm recessed ceiling lights, perimeter cove glow and bedside lamp':'daylight with soft warm ceiling lights and bedside lamp',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{pc:'desktop tower below the desk on a low riser at the far end, mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'silver MacBook Air M2, black keyboard, large trackpad, notched display, MagSafe and two USB-C ports, open on raised aluminum holder',displays:'main monitor tilted backward 10 degrees, macOS-style desktop on monitor and MacBook; 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'staggered 75-percent keyboard with shaped keycaps and legends, sculpted wireless mouse with split buttons and wheel, soundbar, remote, USB ports and cable tray; clear desk without lamp or wall accessories organizer'},storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Individual anime reference decor cutouts over continuous peach plaster, raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
     function interiorView(){return ['inside','gallery','ceiling','storage'].includes(view);}
     const resize=new ResizeObserver(()=>{const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);const size=renderer.getDrawingBufferSize(new T.Vector2());if(usePostProcessing){renderTarget.setSize(size.x,size.y);postMat.uniforms.resolution.value.copy(size);}camera.aspect=w/h;camera.updateProjectionMatrix();draw();});resize.observe(stage);
     root.querySelector('[data-view-select]').addEventListener('change',e=>{view=e.target.value;phi=view==='top'?.025:.99;theta=view==='top'?0:-.5;distance=34;if(view==='inside'){walkPosition.set(0,5.25,0);insideYaw=0;insidePitch=0;}if(['front','stairs','wash','balcony'].includes(view)){const presets={front:[0,22.8,0],stairs:[-3.9,7.45,0],wash:[0,16,-0.45],balcony:[0,34,0]};const [x,z,yaw]=presets[view];walkPosition.set(x,5.25,z);insideYaw=yaw;insidePitch=e.target.value==='wash'?-.35:e.target.value==='balcony'?-.6:e.target.value==='stairs'?-.55:e.target.value==='front'?-.15:0;view='inside';distance=34;}if(view==='gallery'){walkPosition.set(0,5.25,0);insideYaw=-2.15;insidePitch=-.28;distance=34;}if(view==='ceiling'){insideYaw=2.35;insidePitch=.78;}if(view==='storage'){insideYaw=.15;insidePitch=-.18;}draw();save();});
