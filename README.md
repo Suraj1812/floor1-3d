@@ -57,3 +57,5 @@ The main monitor follows the supplied curved Samsung-style reference, with a gen
 The PC tower sits beneath the far end of the desk on a low riser, with cables routed behind the desk and the central chair space kept clear.
 
 The curved monitor is turned sideways 15 degrees while retaining its backward tilt. A black and muted red racing-style gaming chair replaces the office chair, with a shaped high back, headrest and lumbar cushions, seat bolsters, adjustable armrests, recline hardware and twin-wheel casters.
+
+An interactive wall switchboard beside the desk has separate ceiling, cove, fan and desk-power rockers, two three-pin outlets and USB-A/USB-C ports. Tap the 3D rockers or use Room settings for lights and desk power; the fan toolbar stays synchronized. Circuit preferences persist locally. Desk power switches the monitor and TV display; the MacBook remains on battery.

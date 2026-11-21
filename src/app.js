@@ -390,6 +390,38 @@
     // TV remote beside the keyboard.
     box(.3,.035,.1,3.85,2.64,-2.28,graphite,model,.025);
     for(let i=0;i<5;i++)sphere(3.75+i*.045,2.663,-2.28,.013,.006,.018,cream);
+    // Reachable modular switchboard beside the desk, with outlets and charging.
+    const switchboard=new T.Group();switchboard.name='interactive-desk-switchboard';switchboard.position.set(5.94,3.85,-.3);switchboard.rotation.y=-Math.PI/2;model.add(switchboard);
+    const boardWhite=mat('#e8e7e1',.6),boardInset=mat('#b5b9b3',.8),socketDark=mat('#353c3e',.9);
+    box(1.65,.78,.055,0,0,0,metal,switchboard,.018);
+    box(1.61,.74,.025,0,0,.04,boardWhite,switchboard,.01);
+    const boardSwitches=[];
+    for(const [i,key] of ['ceiling','cove','fan','desk'].entries()){
+      const x=-.57+i*.38;
+      box(.24,.28,.012,x,.14,.06,boardInset,switchboard,.004);
+      const rocker=box(.2,.245,.033,x,.14,.083,boardWhite,switchboard,.008);
+      rocker.userData.circuit=key;boardSwitches.push(rocker);
+      const indicator=box(.08,.015,.006,x,.21,.104,led,switchboard);rocker.userData.indicator=indicator;
+    }
+    // Two three-pin sockets and separate USB-A / USB-C charging ports.
+    for(const x of [-.51,0]){
+      box(.37,.27,.012,x,-.215,.06,cream,switchboard,.006);
+      for(const [dx,dy,w,h] of [[0,.06,.038,.053],[-.085,-.045,.03,.045],[.085,-.045,.03,.045]])box(w,h,.009,x+dx,-.215+dy,.073,socketDark,switchboard,.002);
+    }
+    box(.35,.27,.012,.51,-.215,.06,cream,switchboard,.006);
+    box(.14,.045,.009,.51,-.17,.074,socketDark,switchboard,.002);
+    box(.105,.027,.009,.51,-.26,.074,socketDark,switchboard,.003);
+    for(const x of [-.76,.76]){const screw=cylinder(.013,.009,x,0,.059,metal,switchboard);screw.rotation.x=Math.PI/2;}
+    const boardLabels=document.createElement('canvas');boardLabels.width=1100;boardLabels.height=520;
+    const sq=boardLabels.getContext('2d');sq.textAlign='center';sq.fillStyle='#46504d';sq.font='22px sans-serif';
+    ['LIGHTS','COVE','FAN','DESK'].forEach((label,i)=>sq.fillText(label,(-.57+i*.38)/1.65*1100+550,62));
+    sq.font='18px sans-serif';sq.fillText('POWER',210,492);sq.fillText('POWER',550,492);sq.fillText('USB',890,492);
+    const labelMap=new T.CanvasTexture(boardLabels);labelMap.colorSpace=T.SRGBColorSpace;
+    const boardText=new T.Mesh(new T.PlaneGeometry(1.65,.78),new T.MeshStandardMaterial({map:labelMap,transparent:true,depthWrite:false,roughness:.8}));boardText.position.z=.058;switchboard.add(boardText);
+    // A plug and tidy lead show where the workstation connects.
+    box(.115,.13,.11,-.51,-.215,.14,graphite,switchboard,.018);
+    tube([[-.51,-.27,.2],[-.51,-.45,.18],[-.57,-.63,.12]],.014,graphite,switchboard);
+    tube([[5.82,3.22,-.87],[5.84,2.75,-1],[5.83,2.36,-1.35],[5.8,2.34,-3.7]],.014,graphite);
     // Full racing-style gaming chair, angled gently toward the workstation.
     const chair=new T.Group();chair.name='high-back-black-red-gaming-chair';chair.position.set(2.35,0,-3.55);chair.rotation.y=.12;model.add(chair);
     const chairLeather=mat('#202528',.64),chairInsert=mat('#30373b',.91),chairAccent=mat('#7b3038',.78),chairStitch=mat('#9b7778',.9);
@@ -716,6 +748,11 @@
     }
     const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
     let fanRunning=!reducedMotion.matches,fanTime=0;
+    const circuits={ceiling:true,cove:true,desk:true};
+    function restoreCircuits(saved){for(const key of Object.keys(circuits))if(typeof saved?.circuits?.[key]==='boolean')circuits[key]=saved.circuits[key];}
+    restoreCircuits(roomState?.widgetState?.privateContent);
+    const switchedOffScreen=mat('#0c1114',.4),tvOnMaterial=tvScreen.material;
+    function toggleCircuit(key){if(key==='fan')fanRunning=!fanRunning;else circuits[key]=!circuits[key];draw();save();}
     let tvTilt=Number.isFinite(roomState?.widgetState?.privateContent?.tvTilt)?Math.max(0,Math.min(25,roomState.widgetState.privateContent.tvTilt)):12;
     let sofaColor=Object.hasOwn(sofaPalettes,roomState?.widgetState?.privateContent?.sofaColor)?roomState.widgetState.privateContent.sofaColor:'dustyBlue';
     let theta=-.5,phi=.99,distance=25.5,view='inside',evening=true,insideYaw=2.35,insidePitch=.03;
@@ -749,9 +786,12 @@
       root.querySelector('.walk-controls').hidden=!inside;
       const zone=(Math.abs(walkPosition.x)>6.3||walkPosition.z>36.3||walkPosition.z< -6.3)?'Outside':walkPosition.z<6.2?'Back room':walkPosition.z<20.2?(walkPosition.x>1.5||walkPosition.z<8.4?'Passage':walkPosition.z<14.2?'Stairs':walkPosition.x> -1.4?'Toilet':'Wash & shower'):walkPosition.z<32.2?'Front room':walkPosition.z<36.3?'Balcony':'Outside';
       sun.intensity=evening?.08:2.8;ambient.intensity=evening?.38:.8;
-      ceilingDownlights.forEach(light=>light.intensity=evening?24:9);
-      downlightLens.emissiveIntensity=evening?8:5;
-      ceilingGlow.emissiveIntensity=evening?1.4:.8;
+      ceilingDownlights.forEach(light=>light.intensity=circuits.ceiling?(evening?24:9):0);
+      downlightLens.emissiveIntensity=circuits.ceiling?(evening?8:5):0;
+      ceilingGlow.emissiveIntensity=circuits.cove?(evening?1.4:.8):0;
+      curvedScreen.material=circuits.desk?pcScreen:switchedOffScreen;tvScreen.material=circuits.desk?tvOnMaterial:switchedOffScreen;
+      for(const rocker of boardSwitches){const on=rocker.userData.circuit==='fan'?fanRunning:circuits[rocker.userData.circuit];rocker.rotation.x=on?-.1:.1;rocker.userData.indicator.visible=on;}
+      root.querySelectorAll('[data-circuit]').forEach(input=>input.checked=circuits[input.dataset.circuit]);
       bedsideLight.intensity=evening?8:3;shadeMat.emissiveIntensity=evening?.45:.14;
       renderer.toneMappingExposure=evening?1.12:1.02;
       const lightButton=root.querySelector('[data-light]');lightButton.setAttribute('aria-pressed',String(evening));lightButton.setAttribute('aria-label',evening?'Switch to daylight':'Switch to evening lighting');lightButton.title=evening?'Daylight':'Evening lighting';lightButton.querySelector('use').setAttribute('href',evening?'#icon-moon':'#icon-sun');
@@ -766,12 +806,13 @@
         renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
       }else renderer.render(scene,camera);
     }
-    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'back room only: simple warm off-white PVC panels concealing gatar-patiya, slim perimeter tray with warm cove glow and six recessed downlights',lighting:evening?'warm recessed ceiling lights, perimeter cove glow and bedside lamp':'daylight with soft warm ceiling lights and bedside lamp',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{chair:'black and muted red racing-style gaming chair, high back, headrest and lumbar cushions, side bolsters, adjustable arms and five twin casters',pc:'desktop tower below the desk on a low riser at the far end, mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'silver MacBook Air M2, black keyboard, large trackpad, notched display, MagSafe and two USB-C ports, open on raised aluminum holder',displays:'reference-style curved black monitor with slim bezels and round base, rotated sideways 15 degrees and tilted backward 10 degrees, independent Windows-style PC desktop with blue silk wallpaper and dark code editor; MacBook retains its macOS-style landscape wallpaper; 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'staggered 75-percent keyboard with shaped keycaps and legends, sculpted wireless mouse with split buttons and wheel, soundbar, remote, USB ports and cable tray; clear desk without lamp or wall accessories organizer'},storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Individual anime reference decor cutouts over continuous peach plaster, raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
+    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'back room only: simple warm off-white PVC panels concealing gatar-patiya, slim perimeter tray with warm cove glow and six recessed downlights',lighting:evening?'warm recessed ceiling lights, perimeter cove glow and bedside lamp':'daylight with soft warm ceiling lights and bedside lamp',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{chair:'black and muted red racing-style gaming chair, high back, headrest and lumbar cushions, side bolsters, adjustable arms and five twin casters',pc:'desktop tower below the desk on a low riser at the far end, mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'silver MacBook Air M2, black keyboard, large trackpad, notched display, MagSafe and two USB-C ports, open on raised aluminum holder',displays:'reference-style curved black monitor with slim bezels and round base, rotated sideways 15 degrees and tilted backward 10 degrees, independent Windows-style PC desktop with blue silk wallpaper and dark code editor; MacBook retains its macOS-style landscape wallpaper; 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'staggered 75-percent keyboard with shaped keycaps and legends, sculpted wireless mouse with split buttons and wheel, soundbar, remote, USB ports and cable tray; clear desk without lamp or wall accessories organizer'},storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Individual anime reference decor cutouts over continuous peach plaster, raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{circuits:{...circuits},version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
     function interiorView(){return ['inside','gallery','ceiling','storage'].includes(view);}
     const resize=new ResizeObserver(()=>{const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);const size=renderer.getDrawingBufferSize(new T.Vector2());if(usePostProcessing){renderTarget.setSize(size.x,size.y);postMat.uniforms.resolution.value.copy(size);}camera.aspect=w/h;camera.updateProjectionMatrix();draw();});resize.observe(stage);
     root.querySelector('[data-view-select]').addEventListener('change',e=>{view=e.target.value;phi=view==='top'?.025:.99;theta=view==='top'?0:-.5;distance=34;if(view==='inside'){walkPosition.set(0,5.25,0);insideYaw=0;insidePitch=0;}if(['front','stairs','wash','balcony'].includes(view)){const presets={front:[0,22.8,0],stairs:[-3.9,7.45,0],wash:[0,16,-0.45],balcony:[0,34,0]};const [x,z,yaw]=presets[view];walkPosition.set(x,5.25,z);insideYaw=yaw;insidePitch=e.target.value==='wash'?-.35:e.target.value==='balcony'?-.6:e.target.value==='stairs'?-.55:e.target.value==='front'?-.15:0;view='inside';distance=34;}if(view==='gallery'){walkPosition.set(0,5.25,0);insideYaw=-2.15;insidePitch=-.28;distance=34;}if(view==='ceiling'){insideYaw=2.35;insidePitch=.78;}if(view==='storage'){insideYaw=.15;insidePitch=-.18;}draw();save();});
     root.querySelectorAll('[data-turn]').forEach(b=>b.addEventListener('click',()=>{if(interiorView()){insideYaw-=Number(b.dataset.turn)*.3;view='inside';}else{theta+=Number(b.dataset.turn)*.3;}draw();save();}));
     root.querySelector('[data-light]').addEventListener('click',()=>{evening=!evening;draw();save();});
+    root.querySelectorAll('[data-circuit]').forEach(input=>input.addEventListener('change',()=>{circuits[input.dataset.circuit]=input.checked;draw();save();}));
     root.querySelector('[data-fan]').addEventListener('click',()=>{fanRunning=!fanRunning;draw();save();});
     root.querySelector('[data-zoom]').addEventListener('input',e=>{distance=34-Number(e.target.value)/100*19;draw();});root.querySelector('[data-zoom]').addEventListener('change',save);
     root.querySelectorAll('[data-zoom-step]').forEach(button=>button.addEventListener('click',()=>{distance=Math.max(15,Math.min(34,distance-Number(button.dataset.zoomStep)*1.5));draw();save();}));
@@ -835,12 +876,19 @@
       }
       walkPosition.y=5.25+elevation;return true;
     }
+    const boardRaycaster=new T.Raycaster();let boardTap=null;
+    function pickBoardSwitch(e){
+      const bounds=renderer.domElement.getBoundingClientRect();
+      boardRaycaster.setFromCamera(new T.Vector2((e.clientX-bounds.left)/bounds.width*2-1,-(e.clientY-bounds.top)/bounds.height*2+1),camera);
+      const hit=boardRaycaster.intersectObjects(boardSwitches,false)[0];
+      if(hit&&interiorView())toggleCircuit(hit.object.userData.circuit);
+    }
     const pointers=new Map();let previousPinch=0;
-    stage.addEventListener('pointerdown',e=>{stage.setPointerCapture(e.pointerId);pointers.set(e.pointerId,[e.clientX,e.clientY]);previousPinch=0;});
-    stage.addEventListener('pointermove',e=>{const old=pointers.get(e.pointerId);if(!old)return;pointers.set(e.pointerId,[e.clientX,e.clientY]);if(pointers.size===2){const a=[...pointers.values()],d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);if(previousPinch&&d>0)distance=Math.max(15,Math.min(34,distance*previousPinch/d));previousPinch=d;}else if(interiorView()){view='inside';insideYaw-=(e.clientX-old[0])*.005;insidePitch=Math.max(-1.1,Math.min(1.4,insidePitch+(e.clientY-old[1])*.004));}else{theta-=(e.clientX-old[0])*.007;phi=Math.max(.025,Math.min(1.42,phi+(e.clientY-old[1])*.005));if(view!=='top')view='room';}draw();});
-    function up(e){pointers.delete(e.pointerId);previousPinch=0;save();}stage.addEventListener('pointerup',up);stage.addEventListener('pointercancel',up);
+    stage.addEventListener('pointerdown',e=>{stage.setPointerCapture(e.pointerId);pointers.set(e.pointerId,[e.clientX,e.clientY]);boardTap=pointers.size===1?{id:e.pointerId,x:e.clientX,y:e.clientY}:null;previousPinch=0;});
+    stage.addEventListener('pointermove',e=>{if(boardTap&&Math.hypot(e.clientX-boardTap.x,e.clientY-boardTap.y)>6)boardTap=null;const old=pointers.get(e.pointerId);if(!old)return;pointers.set(e.pointerId,[e.clientX,e.clientY]);if(pointers.size===2){const a=[...pointers.values()],d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);if(previousPinch&&d>0)distance=Math.max(15,Math.min(34,distance*previousPinch/d));previousPinch=d;}else if(interiorView()){view='inside';insideYaw-=(e.clientX-old[0])*.005;insidePitch=Math.max(-1.1,Math.min(1.4,insidePitch+(e.clientY-old[1])*.004));}else{theta-=(e.clientX-old[0])*.007;phi=Math.max(.025,Math.min(1.42,phi+(e.clientY-old[1])*.005));if(view!=='top')view='room';}draw();});
+    function up(e){if(e.type==='pointerup'&&boardTap?.id===e.pointerId)pickBoardSwitch(e);boardTap=null;pointers.delete(e.pointerId);previousPinch=0;save();}stage.addEventListener('pointerup',up);stage.addEventListener('pointercancel',up);
     let wheelTimer;stage.addEventListener('wheel',e=>{e.preventDefault();distance=Math.max(15,Math.min(34,distance+e.deltaY*.015));draw();clearTimeout(wheelTimer);wheelTimer=setTimeout(save,250);},{passive:false});
-    window.addEventListener('floor1:state',e=>{if(e.detail?.globals?.widgetState){restore(e.detail.globals.widgetState);const saved=e.detail.globals.widgetState.privateContent;const running=saved?.fanRunning;if(typeof running==='boolean')fanRunning=running&&!reducedMotion.matches;if(Number.isFinite(saved?.tvTilt))tvTilt=Math.max(0,Math.min(25,saved.tvTilt));if(Object.hasOwn(sofaPalettes,saved?.sofaColor))sofaColor=saved.sofaColor;draw();}});
+    window.addEventListener('floor1:state',e=>{if(e.detail?.globals?.widgetState){restore(e.detail.globals.widgetState);restoreCircuits(e.detail.globals.widgetState.privateContent);const saved=e.detail.globals.widgetState.privateContent;const running=saved?.fanRunning;if(typeof running==='boolean')fanRunning=running&&!reducedMotion.matches;if(Number.isFinite(saved?.tvTilt))tvTilt=Math.max(0,Math.min(25,saved.tvTilt));if(Object.hasOwn(sofaPalettes,saved?.sofaColor))sofaColor=saved.sofaColor;draw();}});
     reducedMotion.addEventListener('change',e=>{if(e.matches){fanRunning=false;draw();}});
     // Animate only the requested moving fan, and pause when off-screen.
     let inView=true,lastFrame=0;

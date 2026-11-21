@@ -62,3 +62,9 @@ button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-v
 /* Keep native view names in the opened chooser, with only its icon on the canvas. */
 .view-field{width:54px;flex:0 0 54px;}.view-field select{color:transparent;padding:0;font-size:0;}.view-field select option{color:var(--foreground);font-size:14px;}.view-field .field-icon{left:17px;}.view-field .select-chevron{display:none;}
 @media(max-width:650px){.walk-controls{left:16px;bottom:max(88px,calc(env(safe-area-inset-bottom) + 76px));}.room-toolbar{display:flex;width:auto;gap:2px;padding:6px;border-radius:14px;}.view-field{width:36px;flex-basis:36px;}.view-field .field-icon{left:9px;}.dock-group{gap:0;padding:0;border:0;}.icon-button{width:34px;height:40px;flex:0 0 34px;}.room-options>summary{width:34px;}.dock-group .icon-button{width:34px;flex:0 0 34px;}.room-options{position:relative;}}
+
+.circuit-controls{margin:0 0 18px;padding:0 0 14px;border:0;border-bottom:1px solid var(--border);}
+.circuit-controls legend{padding:0;margin-bottom:8px;font-weight:600;}
+.circuit-controls label{display:flex;align-items:center;gap:10px;min-height:36px;cursor:pointer;}
+.circuit-controls input{width:18px;height:18px;accent-color:#557364;}
+.options-panel{max-height:70svh;overflow-y:auto;}
