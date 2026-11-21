@@ -185,7 +185,35 @@ window.buildFloorExtension = function (T, model, {box,cylinder,sphere,tube,mat,p
   for(const z of [22.9,29.7])box(2.7,1.5,.4,-4.25,1.2,z,sage,extension,.1);
   cylinder(1.3,.12,-.8,1.45,26.8,teak,extension,.025);cylinder(.4,1.4,-.8,.7,26.8,dark,extension);
   box(.18,3.6,5.5,5.8,4.8,26.6,oak,extension);box(.12,2.6,4.5,5.65,4.9,26.6,dark,extension,.025);
-  const tvScreen=screen.clone();tvScreen.emissiveIntensity=.22;box(.015,2.4,4.25,5.58,4.9,26.6,tvScreen,extension).castShadow=false;
+  // A real bundled nature clip, independent of the computer wallpaper.
+  const tvVideo=document.createElement('video');tvVideo.dataset.frontTvVideo='';
+  tvVideo.src='./assets/front-tv-nature.mp4';tvVideo.muted=true;tvVideo.defaultMuted=true;
+  tvVideo.loop=true;tvVideo.playsInline=true;tvVideo.preload='auto';tvVideo.setAttribute('playsinline','');
+  tvVideo.setAttribute('aria-hidden','true');tvVideo.tabIndex=-1;
+  tvVideo.style.cssText='position:fixed;width:1px;height:1px;left:-10px;top:-10px;opacity:0;pointer-events:none';
+  document.getElementById('room-three-view').appendChild(tvVideo);
+  const tvVideoMap=new T.VideoTexture(tvVideo);tvVideoMap.colorSpace=T.SRGBColorSpace;
+  const frontTvMaterial=new T.MeshBasicMaterial({map:tvVideoMap,toneMapped:false});
+  // Attach the picture in world coordinates so the mirrored floor plan cannot reverse it.
+  const tvSurface=new T.Mesh(new T.PlaneGeometry(4.25,2.4),frontTvMaterial);
+  tvSurface.name='front-room-tv-playing-real-nature-video';tvSurface.position.set(-5.575,4.9,26.6);tvSurface.rotation.y=Math.PI/2;tvSurface.userData.frontTv=true;model.add(tvSurface);
+  sphere(5.579,3.635,28.57,.007,.007,.007,warmLight,extension);
+  box(.018,.025,.18,5.577,3.625,26.6,metal,extension);
+  const tvOffMaterial=mat('#080d10',.32);
+  let tvRequested=true,tvInRoom=false,tvPlayPending=false,tvFailed=false;
+  function syncTv(){
+    const active=tvRequested&&tvInRoom&&!document.hidden&&!tvFailed;
+    tvSurface.material=tvRequested?frontTvMaterial:tvOffMaterial;
+    if(active&&tvVideo.paused&&!tvPlayPending){
+      tvPlayPending=true;const attempt=tvVideo.play();
+      if(attempt)attempt.catch(()=>{}).finally(()=>{tvPlayPending=false;});else tvPlayPending=false;
+    }else if(!active&&!tvVideo.paused)tvVideo.pause();
+  }
+  tvVideo.addEventListener('error',()=>{tvFailed=true;tvVideo.dataset.status='unavailable';});
+  tvVideo.addEventListener('playing',()=>{tvVideo.dataset.status='playing';});
+  tvVideo.addEventListener('pause',()=>{tvVideo.dataset.status='paused';});
+  document.addEventListener('visibilitychange',syncTv);
+
   box(1.1,.65,5.5,5.35,.8,26.6,oak,extension,.04);
   box(3.3,.15,2.5,2.8,2.5,22.1,oak,extension,.05);
   for(const x of [1.4,4.2])for(const z of [21.1,23.1])box(.1,2.4,.1,x,1.2,z,metal,extension);
@@ -250,5 +278,5 @@ window.buildFloorExtension = function (T, model, {box,cylinder,sphere,tube,mat,p
   const daylight=new T.DirectionalLight('#fff0db',2.5);daylight.position.set(-4,12,40);daylight.target.position.set(0,1,25);daylight.castShadow=true;
   daylight.shadow.mapSize.set(2048,2048);Object.assign(daylight.shadow.camera,{left:-9,right:9,top:10,bottom:-10,near:1,far:45});daylight.shadow.normalBias=.025;daylight.shadow.bias=-.00015;daylight.shadow.radius=3;
   extension.add(daylight,daylight.target);
-  return {animate(dt){ceilingRotor.rotation.y=(ceilingRotor.rotation.y+dt*13)%(Math.PI*2);},barriers:barriers.map(b=>({...b,x:-b.x})),update(interior,evening,cameraZ){outdoors.visible=interior&&cameraZ>20.3;skyMaterial.color.set(evening?'#8e8c9c':'#ffffff');roofs.visible=interior;envelope.visible=interior;lowWalls.visible=!interior;daylight.intensity=evening?.12:2.5;lights.forEach(light=>light.intensity=evening?17:6);warmLight.emissiveIntensity=evening?1.4:.3;}};
+  return {tvSurface,toggleTv(){tvRequested=!tvRequested;syncTv();},tvRequested(){return tvRequested;},isVideoPlaying(){return tvInRoom&&!tvVideo.paused&&!tvVideo.ended;},dispose(){tvVideo.pause();tvVideo.removeAttribute('src');tvVideo.load();tvVideo.remove();tvVideoMap.dispose();frontTvMaterial.dispose();tvOffMaterial.dispose();document.removeEventListener('visibilitychange',syncTv);},animate(dt){ceilingRotor.rotation.y=(ceilingRotor.rotation.y+dt*13)%(Math.PI*2);},barriers:barriers.map(b=>({...b,x:-b.x})),update(interior,evening,cameraZ){tvInRoom=interior&&cameraZ>20.2&&cameraZ<32.25;syncTv();outdoors.visible=interior&&cameraZ>20.3;skyMaterial.color.set(evening?'#8e8c9c':'#ffffff');roofs.visible=interior;envelope.visible=interior;lowWalls.visible=!interior;daylight.intensity=evening?.12:2.5;lights.forEach(light=>light.intensity=evening?17:6);warmLight.emissiveIntensity=evening?1.4:.3;}};
 };

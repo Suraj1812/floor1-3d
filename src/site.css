@@ -68,3 +68,6 @@ button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-v
 .circuit-controls label{display:flex;align-items:center;gap:10px;min-height:36px;cursor:pointer;}
 .circuit-controls input{width:18px;height:18px;accent-color:#557364;}
 .options-panel{max-height:70svh;overflow-y:auto;}
+
+.front-tv-control{width:100%;min-height:40px;margin:0 0 18px;border:1px solid var(--border);border-radius:9px;background:#f4f6f2;color:var(--foreground);font:inherit;cursor:pointer;}
+.front-tv-control:focus-visible{outline:2px solid var(--focus);outline-offset:2px;}

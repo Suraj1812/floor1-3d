@@ -836,6 +836,7 @@
       ceilingGlow.emissiveIntensity=circuits.cove?(evening?1.4:.8):0;
       curvedScreen.material=circuits.desk?pcScreen:switchedOffScreen;tvScreen.material=circuits.desk?tvOnMaterial:switchedOffScreen;
       for(const rocker of boardSwitches){const on=rocker.userData.circuit==='fan'?fanRunning:circuits[rocker.userData.circuit];rocker.rotation.x=on?-.1:.1;rocker.userData.indicator.visible=on;}
+      const frontTvButton=root.querySelector('[data-front-tv]');frontTvButton.textContent=floorExtension.tvRequested()?'Turn front TV off':'Turn front TV on';frontTvButton.setAttribute('aria-pressed',String(floorExtension.tvRequested()));
       root.querySelectorAll('[data-circuit]').forEach(input=>input.checked=circuits[input.dataset.circuit]);
       bedsideLight.intensity=evening?8:3;shadeMat.emissiveIntensity=evening?.45:.14;
       renderer.toneMappingExposure=evening?1.12:1.02;
@@ -858,6 +859,7 @@
     root.querySelectorAll('[data-turn]').forEach(b=>b.addEventListener('click',()=>{if(interiorView()){insideYaw-=Number(b.dataset.turn)*.3;view='inside';}else{theta+=Number(b.dataset.turn)*.3;}draw();save();}));
     root.querySelector('[data-light]').addEventListener('click',()=>{evening=!evening;draw();save();});
     root.querySelectorAll('[data-circuit]').forEach(input=>input.addEventListener('change',()=>{circuits[input.dataset.circuit]=input.checked;draw();save();}));
+    root.querySelector('[data-front-tv]').addEventListener('click',()=>{floorExtension.toggleTv();draw();});
     root.querySelector('[data-fan]').addEventListener('click',()=>{fanRunning=!fanRunning;draw();save();});
     root.querySelector('[data-zoom]').addEventListener('input',e=>{distance=34-Number(e.target.value)/100*19;draw();});root.querySelector('[data-zoom]').addEventListener('change',save);
     root.querySelectorAll('[data-zoom-step]').forEach(button=>button.addEventListener('click',()=>{distance=Math.max(15,Math.min(34,distance-Number(button.dataset.zoomStep)*1.5));draw();save();}));
@@ -925,8 +927,8 @@
     function pickBoardSwitch(e){
       const bounds=renderer.domElement.getBoundingClientRect();
       boardRaycaster.setFromCamera(new T.Vector2((e.clientX-bounds.left)/bounds.width*2-1,-(e.clientY-bounds.top)/bounds.height*2+1),camera);
-      const hit=boardRaycaster.intersectObjects(boardSwitches,false)[0];
-      if(hit&&interiorView())toggleCircuit(hit.object.userData.circuit);
+      const hit=boardRaycaster.intersectObjects([...boardSwitches,floorExtension.tvSurface],false)[0];
+      if(hit&&interiorView()){if(hit.object.userData.frontTv){floorExtension.toggleTv();draw();}else toggleCircuit(hit.object.userData.circuit);}
     }
     const pointers=new Map();let previousPinch=0;
     stage.addEventListener('pointerdown',e=>{stage.setPointerCapture(e.pointerId);pointers.set(e.pointerId,[e.clientX,e.clientY]);boardTap=pointers.size===1?{id:e.pointerId,x:e.clientX,y:e.clientY}:null;previousPinch=0;});
@@ -939,9 +941,9 @@
     let inView=true,lastFrame=0;
     const visibilityObserver=new IntersectionObserver(entries=>{inView=entries[0].isIntersecting;});visibilityObserver.observe(stage);
     function animateFan(now){
-      if(!root.isConnected){visibilityObserver.disconnect();resize.disconnect();liveMirrors.forEach(mirror=>mirror.dispose());return;}
+      if(!root.isConnected){visibilityObserver.disconnect();resize.disconnect();liveMirrors.forEach(mirror=>mirror.dispose());floorExtension.dispose();return;}
       if(now-lastFrame>=1000/24){const dt=Math.min((now-lastFrame)/1000,.1);lastFrame=now;
-        if(inView&&!document.hidden){const moving=walk(dt);if(fanRunning){floorExtension.animate(dt);fanTime+=dt;fanRotor.rotation.z=(fanRotor.rotation.z+dt*24)%(Math.PI*2);fanYaw.rotation.y=-Math.PI/2+Math.sin(fanTime*.72)*.58;}if(moving||fanRunning)draw();}
+        if(inView&&!document.hidden){const moving=walk(dt);if(fanRunning){floorExtension.animate(dt);fanTime+=dt;fanRotor.rotation.z=(fanRotor.rotation.z+dt*24)%(Math.PI*2);fanYaw.rotation.y=-Math.PI/2+Math.sin(fanTime*.72)*.58;}if(moving||fanRunning||floorExtension.isVideoPlaying())draw();}
       }
       requestAnimationFrame(animateFan);
     }

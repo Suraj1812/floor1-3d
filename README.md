@@ -37,7 +37,7 @@ The site is fully static. Three.js 0.160.1 is vendored under `vendor/`, and the 
 
 The new areas follow the supplied floor sketch with assumed 12 ft width, 14 ft service/passage zone, 12 ft front room and 4 ft balcony. The front room uses solid plaster masonry, a paneled timber balcony door, one grilled window with cotton curtains, a deep stone sill and a projecting chajja. Local surface maps add plaster grain, vitrified tile variation, woven upholstery and granite stair treads; the empty balcony uses anti-skid tiles. Dedicated daylight and warm fittings light the extension, with a simple neighboring roofscape visible from the front. The existing back-room furnishings and finishes are preserved. An open slab reveals the ground-to-first stair flights, with treads, risers, landing and guardrails; there is no ground-floor or second-floor furnished interior. The back room has a flat warm off-white PVC finish beneath its gatar-patiya, with fine panel joints and a shallow perimeter tray with soft cove lighting only. The other spaces retain exposed gatar-patiya ceilings, with clear headroom above the stairwell. The front lounge has an animated three-blade ceiling fan controlled together with the existing fan. Exterior exploration remains at first-floor level.
 
-The room is a design visualization; furniture proportions and ceiling construction are approximate. The TV is an interactive model, not an actual streaming client.
+The room is a design visualization; furniture proportions and ceiling construction are approximate. The back-room TV is an interactive display model; the front-room TV plays a bundled local nature clip.
 
 ## Third-party assets
 
@@ -65,3 +65,5 @@ The bed uses a warm off-white fitted sheet, a plain duvet matching the selected 
 Room settings → Bed & sofa theme changes both the sofa and bedding together, without moving the camera. The shared selection persists locally.
 
 The wardrobe left door and toilet/wash vanity use live planar mirrors that render the current scene from a reflected camera, including camera movement and animated furnishings. Mirrors are untinted, with 1024 px capture targets on desktop and 512 px on phones. A shared capture guard prevents recursive mirror rendering. The local reflector is adapted from Three.js r160 under its bundled MIT license.
+
+The front-room TV plays a locally bundled real nature video (MDN CC0 flower sample), with a correctly oriented screen independent of the computer desktops. Click the screen or use Room settings to turn it on/off. Muted inline playback runs in the front room and pauses away from it or when the tab is hidden; video frames keep rendering even when the fan is off. Source attribution is in assets/ATTRIBUTION.md.
