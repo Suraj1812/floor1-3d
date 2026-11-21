@@ -471,11 +471,11 @@
     if(roomState?.widgetState?.privateContent?.paletteVersion!==1){view='inside';insideYaw=2.35;insidePitch=.03;distance=25.5;}
     if(roomState?.widgetState?.privateContent?.bedArtVersion!==1){view='inside';insideYaw=1.05;insidePitch=-.04;distance=25.5;}
     if(roomState?.widgetState?.privateContent?.workstationVersion!==1){view='inside';insideYaw=2.35;insidePitch=-.13;distance=25.5;}
-    if(roomState?.widgetState?.privateContent?.sofaVersion!==2){view='gallery';insideYaw=-2.15;insidePitch=-.28;distance=30.5;}
-    if(roomState?.widgetState?.privateContent?.sofaFinishVersion!==2){view='gallery';insideYaw=-2.15;insidePitch=-.28;distance=30.5;sofaColor='dustyBlue';}
+    if(roomState?.widgetState?.privateContent?.sofaVersion!==2){view='gallery';insideYaw=-2.15;insidePitch=-.28;distance=34;}
+    if(roomState?.widgetState?.privateContent?.sofaFinishVersion!==2){view='gallery';insideYaw=-2.15;insidePitch=-.28;distance=34;sofaColor='dustyBlue';}
     if(typeof roomState?.widgetState?.privateContent?.fanRunning==='boolean')fanRunning=roomState.widgetState.privateContent.fanRunning&&!reducedMotion.matches;
     const walkPosition=new T.Vector3(0,5.25,0);
-    view='inside';insideYaw=0;insidePitch=0;distance=18;
+    view='inside';insideYaw=0;insidePitch=0;distance=34;
     function draw(){
       const inside=view==='inside',gallery=view==='gallery',ceilingView=view==='ceiling',storage=view==='storage',interior=inside||gallery||ceilingView||storage;
       sofaFabric.color.set(sofaPalettes[sofaColor].color);sofaPiping.color.copy(sofaFabric.color).multiplyScalar(.8);root.querySelector('[data-sofa-color]').value=sofaColor;
@@ -493,12 +493,11 @@
       windowAssembly.visible=true;floorExtension.update(interior,evening,walkPosition.z);
       root.querySelector('.walk-controls').hidden=!inside;
       const zone=(Math.abs(walkPosition.x)>6.3||walkPosition.z>36.3||walkPosition.z< -6.3)?'Outside':walkPosition.z<6.2?'Back room':walkPosition.z<20.2?(walkPosition.x>1.5||walkPosition.z<8.4?'Passage':walkPosition.z<14.2?'Stairs':walkPosition.x> -1.4?'Toilet':'Wash & shower'):walkPosition.z<32.2?'Front room':walkPosition.z<36.3?'Balcony':'Outside';
-      root.querySelector('[data-location]').textContent=interior?zone:'Whole floor';
       sun.intensity=evening?.08:2.8;ambient.intensity=evening?.38:.8;fill.intensity=evening?8:10;ledFill.intensity=evening?18:6;
       bedsideLight.intensity=evening?8:3;shadeMat.emissiveIntensity=evening?.45:.14;
       renderer.toneMappingExposure=evening?1.12:1.02;
       const lightButton=root.querySelector('[data-light]');lightButton.setAttribute('aria-pressed',String(evening));lightButton.setAttribute('aria-label',evening?'Switch to daylight':'Switch to evening lighting');lightButton.title=evening?'Daylight':'Evening lighting';lightButton.querySelector('use').setAttribute('href',evening?'#icon-moon':'#icon-sun');
-      const fanButton=root.querySelector('[data-fan]');fanButton.setAttribute('aria-pressed',String(fanRunning));fanButton.setAttribute('aria-label',fanRunning?'Turn fan off':'Turn fan on');fanButton.title=fanRunning?'Fan on':'Fan off';
+      const fanButton=root.querySelector('[data-fan]');fanButton.setAttribute('aria-pressed',String(fanRunning));fanButton.setAttribute('aria-label',fanRunning?'Turn fans off':'Turn fans on');fanButton.title=fanRunning?'Fan on':'Fan off';
       root.querySelector('[data-zoom]').value=Math.round((34-distance)/19*100);
       root.querySelector('[data-view-select]').value=inside?({ 'Front room':'front',Stairs:'stairs',Toilet:'wash','Wash & shower':'wash',Balcony:'balcony' }[zone]||'inside'):view;
       root.querySelector('[data-zoom-step="1"]').disabled=distance<=15;
@@ -510,14 +509,14 @@
     function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'exposed gatar-patiya, no ceiling lights',lighting:evening?'warm desk and bedside lamps':'daylight and warm lamps',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{pc:'desktop tower with mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'open on raised aluminum holder',displays:'main monitor plus 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'keyboard legends, mouse wheel, soundbar, remote, USB ports and cable tray'},storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Anime wall photo raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
     function interiorView(){return ['inside','gallery','ceiling','storage'].includes(view);}
     const resize=new ResizeObserver(()=>{const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);const size=renderer.getDrawingBufferSize(new T.Vector2());renderTarget.setSize(size.x,size.y);postMat.uniforms.resolution.value.copy(size);camera.aspect=w/h;camera.updateProjectionMatrix();draw();});resize.observe(stage);
-    root.querySelector('[data-view-select]').addEventListener('change',e=>{view=e.target.value;phi=view==='top'?.025:.99;theta=view==='top'?0:-.5;if(view==='top'||view==='room')distance=22;if(view==='inside'){walkPosition.set(0,5.25,0);insideYaw=0;insidePitch=0;}if(['front','stairs','wash','balcony'].includes(view)){const presets={front:[0,25,0],stairs:[3.9,10.8,-1.57],wash:[0,16,-0.45],balcony:[0,34,0]};const [x,z,yaw]=presets[view];walkPosition.set(x,5.25,z);insideYaw=yaw;insidePitch=e.target.value==='wash'?-.35:e.target.value==='balcony'?-.6:e.target.value==='stairs'?-.25:e.target.value==='front'?-.15:0;view='inside';distance=18;}if(view==='gallery'){walkPosition.set(0,5.25,0);insideYaw=-2.15;insidePitch=-.28;distance=30.5;}if(view==='ceiling'){insideYaw=2.35;insidePitch=.78;}if(view==='storage'){insideYaw=.15;insidePitch=-.18;}draw();save();});
+    root.querySelector('[data-view-select]').addEventListener('change',e=>{view=e.target.value;phi=view==='top'?.025:.99;theta=view==='top'?0:-.5;distance=34;if(view==='inside'){walkPosition.set(0,5.25,0);insideYaw=0;insidePitch=0;}if(['front','stairs','wash','balcony'].includes(view)){const presets={front:[0,22.8,0],stairs:[-3.9,7.45,0],wash:[0,16,-0.45],balcony:[0,34,0]};const [x,z,yaw]=presets[view];walkPosition.set(x,5.25,z);insideYaw=yaw;insidePitch=e.target.value==='wash'?-.35:e.target.value==='balcony'?-.6:e.target.value==='stairs'?-.55:e.target.value==='front'?-.15:0;view='inside';distance=34;}if(view==='gallery'){walkPosition.set(0,5.25,0);insideYaw=-2.15;insidePitch=-.28;distance=34;}if(view==='ceiling'){insideYaw=2.35;insidePitch=.78;}if(view==='storage'){insideYaw=.15;insidePitch=-.18;}draw();save();});
     root.querySelectorAll('[data-turn]').forEach(b=>b.addEventListener('click',()=>{if(interiorView()){insideYaw-=Number(b.dataset.turn)*.3;view='inside';}else{theta+=Number(b.dataset.turn)*.3;}draw();save();}));
     root.querySelector('[data-light]').addEventListener('click',()=>{evening=!evening;draw();save();});
     root.querySelector('[data-fan]').addEventListener('click',()=>{fanRunning=!fanRunning;draw();save();});
     root.querySelector('[data-zoom]').addEventListener('input',e=>{distance=34-Number(e.target.value)/100*19;draw();});root.querySelector('[data-zoom]').addEventListener('change',save);
     root.querySelectorAll('[data-zoom-step]').forEach(button=>button.addEventListener('click',()=>{distance=Math.max(15,Math.min(34,distance-Number(button.dataset.zoomStep)*1.5));draw();save();}));
     root.querySelector('[data-tv-tilt]').addEventListener('input',e=>{tvTilt=Number(e.target.value);draw();});root.querySelector('[data-tv-tilt]').addEventListener('change',save);
-    root.querySelector('[data-sofa-color]').addEventListener('change',e=>{sofaColor=e.target.value;walkPosition.set(0,5.25,0);view='gallery';insideYaw=-2.15;insidePitch=-.28;distance=30.5;draw();save();});
+    root.querySelector('[data-sofa-color]').addEventListener('change',e=>{sofaColor=e.target.value;walkPosition.set(0,5.25,0);view='gallery';insideYaw=-2.15;insidePitch=-.28;distance=34;draw();save();});
     const options=root.querySelector('.room-options');
     document.addEventListener('pointerdown',e=>{if(options.open&&!options.contains(e.target))options.open=false;});
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&options.open){options.open=false;options.querySelector('summary').focus();}});
@@ -547,12 +546,13 @@
       const x=T.MathUtils.clamp(walkPosition.x+Math.sin(insideYaw)*forward-Math.cos(insideYaw)*side,-18,18);
       const z=T.MathUtils.clamp(walkPosition.z+Math.cos(insideYaw)*forward+Math.sin(insideYaw)*side,-15,48);
       if(!blocked(x,walkPosition.z))walkPosition.x=x;if(!blocked(walkPosition.x,z))walkPosition.z=z;
-      // Eye level follows the two upper stair flights.
-      let elevation=0;const {x:px,z:pz}=walkPosition;
+      // Follow the flight approached from the current landing, including the visible lower stair.
+      let elevation=0;const {x:px,z:pz}=walkPosition,eye=walkPosition.y;
       if(pz>=8.4&&pz<=13.9&&px<=1.4&&px>=-5.65){
-        if(pz>13.2)elevation=4.5;
-        else if(px> -1.65)elevation=T.MathUtils.clamp((pz-8.4)/4.8*4.5,0,4.5);
-        else if(px< -2.55)elevation=4.5+T.MathUtils.clamp((13.2-pz)/4.8*4.5,0,4.5);
+        const lower=eye<3||(px< -2.55&&eye<7.5);
+        if(pz>13.2)elevation=lower?-4.5:4.5;
+        else if(px> -1.65)elevation=lower?-4.5-T.MathUtils.clamp((13.2-pz)/4.8*4.5,0,4.5):T.MathUtils.clamp((pz-8.4)/4.8*4.5,0,4.5);
+        else if(px< -2.55)elevation=lower?-T.MathUtils.clamp((pz-8.4)/4.8*4.5,0,4.5):4.5+T.MathUtils.clamp((13.2-pz)/4.8*4.5,0,4.5);
       }
       walkPosition.y=5.25+elevation;return true;
     }
@@ -569,7 +569,7 @@
     function animateFan(now){
       if(!root.isConnected){visibilityObserver.disconnect();resize.disconnect();return;}
       if(now-lastFrame>=1000/24){const dt=Math.min((now-lastFrame)/1000,.1);lastFrame=now;
-        if(inView&&!document.hidden){const moving=walk(dt);if(fanRunning){fanTime+=dt;fanRotor.rotation.z=(fanRotor.rotation.z+dt*24)%(Math.PI*2);fanYaw.rotation.y=-Math.PI/2+Math.sin(fanTime*.72)*.58;}if(moving||fanRunning)draw();}
+        if(inView&&!document.hidden){const moving=walk(dt);if(fanRunning){floorExtension.animate(dt);fanTime+=dt;fanRotor.rotation.z=(fanRotor.rotation.z+dt*24)%(Math.PI*2);fanYaw.rotation.y=-Math.PI/2+Math.sin(fanTime*.72)*.58;}if(moving||fanRunning)draw();}
       }
       requestAnimationFrame(animateFan);
     }

@@ -12,10 +12,8 @@
     <symbol id="icon-settings" viewBox="0 0 24 24"><path d="M4 7h7m4 0h5M4 17h3m4 0h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
   </defs></svg>
   <div class="room-stage" role="img" aria-label="Interactive first floor. Drag to look around. Move with the joystick or W A S D keys. Use the toolbar to choose a view."></div>
-  <div class="floor-heading"><span>FLOOR 01</span><strong data-location>Back room</strong><small>Concept layout · dimensions approximate</small></div>
   <div class="walk-controls">
     <div class="joystick" data-joystick role="group" aria-label="Movement joystick. Drag to walk. Keyboard alternative: W A S D or arrow keys."><span class="joystick-cross">↑<br>← &nbsp; →<br>↓</span><span class="joystick-knob"></span></div>
-    <div class="walk-hint">Drag circle to walk<span>Drag scene to look · WASD / arrows</span></div>
   </div>
   <div class="room-toolbar" role="group" aria-label="Room controls">
     <div class="view-field select-field">
@@ -41,7 +39,7 @@
         <label class="control-label" for="sofa-color">Sofa color</label>
         <div class="select-field"><select id="sofa-color" data-sofa-color aria-label="Sofa color"><option value="dustyBlue">Dusty blue</option><option value="camel">Camel</option><option value="terracotta">Terracotta</option><option value="navy">Midnight navy</option><option value="charcoal">Charcoal grey</option></select><svg class="icon select-chevron" aria-hidden="true"><use href="#icon-chevron"/></svg></div>
         <div class="range-heading"><label for="room-zoom">Zoom</label></div>
-        <input id="room-zoom" data-zoom aria-label="Zoom" type="range" min="0" max="100" value="50" step="1" />
+        <input id="room-zoom" data-zoom aria-label="Zoom" type="range" min="0" max="100" value="0" step="1" />
         <div class="range-heading"><label for="tv-tilt">TV tilt</label><output data-tv-angle for="tv-tilt">12°</output></div>
         <input id="tv-tilt" data-tv-tilt aria-label="TV screen tilt" type="range" min="0" max="25" value="12" step="1" />
       </div>

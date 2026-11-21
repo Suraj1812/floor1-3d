@@ -31,20 +31,43 @@ window.buildFloorExtension = function (T, model, {box,cylinder,sphere,tube,mat,p
     if(height>6) barriers.push({x,z,w,d});
     box(w,.18,d+.02,x,.15,z,cream,parent);
   }
-  const planLabels=new T.Group();extension.add(planLabels);
-  function label(text,x,z){
-    const c=document.createElement('canvas');c.width=768;c.height=128;const q=c.getContext('2d');
-    q.fillStyle='#eee9df';q.fillRect(0,0,768,128);q.fillStyle='#35483f';q.font='500 44px sans-serif';q.textAlign='center';q.fillText(text,384,80);
-    const texture=new T.CanvasTexture(c);texture.colorSpace=T.SRGBColorSpace;
-    const p=new T.Mesh(new T.PlaneGeometry(3.5,.58),new T.MeshBasicMaterial({map:texture}));p.scale.x=-1;p.rotation.x=-Math.PI/2;p.rotation.z=Math.PI;p.position.set(x,.1,z);planLabels.add(p);
-  }
   // 14 ft circulation/service zone, 12 ft front room, 4 ft balcony.
-  box(12.5,.35,30.2,0,-.22,21.2,stone,extension);
-  box(12,.1,26,0,-.025,19.2,tile,extension);
-  for(let z=6.2;z<32.3;z+=2)box(12,.004,.012,0,.032,z,grout,extension);
-  for(let x=-6;x<=6;x+=2)box(.012,.004,26,x,.032,19.2,grout,extension);
+  // Actual open shaft: the descending ground-floor flight must not be covered by a slab.
+  function floorSlab(w,h,start,end,y,m){
+    const half=w/2;
+    box(w,h,8.4-start,0,y,(start+8.4)/2,m,extension);
+    box(w,h,end-13.5,0,y,(13.5+end)/2,m,extension);
+    box(half+2.55,h,5.1,(2.55-half)/2,y,10.95,m,extension);
+    box(half-5.75,h,5.1,(5.75+half)/2,y,10.95,m,extension);
+  }
+  floorSlab(12.5,.35,6.1,36.3,-.22,stone);
+  floorSlab(12,.1,6.2,32.2,-.025,tile);
+  for(let z=6.2;z<32.3;z+=2){
+    if(z>8.4&&z<13.5){box(8.55,.004,.012,-1.725,.032,z,grout,extension);box(.25,.004,.012,5.875,.032,z,grout,extension);}
+    else box(12,.004,.012,0,.032,z,grout,extension);
+  }
+  for(let x=-6;x<=6;x+=2){
+    if(x>2.55&&x<5.75){box(.012,.004,2.2,x,.032,7.3,grout,extension);box(.012,.004,18.7,x,.032,22.85,grout,extension);}
+    else box(.012,.004,26,x,.032,19.2,grout,extension);
+  }
   wall(.4,26.2,-6.1,19.2);wall(.4,26.2,6.1,19.2);
-  box(4.5,.18,14.2,-3.85,8.9,13.2,cream,roofs);box(7.5,.18,6,2.25,8.9,17.2,cream,roofs);box(12.2,.18,12,0,8.9,26.2,cream,roofs);
+  // Same exposed gatar-patiya construction throughout, with an opening above the stairs.
+  const beamMat=mat('#2c3035',.57),patiyaMat=plaster.clone();patiyaMat.color.set('#bdb7a8');patiyaMat.roughness=.97;patiyaMat.bumpScale=.018;
+  function exposedCeiling(w,d,x,z,y=8.9){
+    box(w,.12,d,x,y+.04,z,patiyaMat,roofs);
+    const nx=Math.ceil(w/1.5),nz=Math.ceil(d/1.5),tw=w/nx,td=d/nz;
+    for(let i=0;i<nx;i++)for(let j=0;j<nz;j++)box(tw-.025,.13,td-.025,x-w/2+tw*(i+.5),y-.09,z-d/2+td*(j+.5),patiyaMat,roofs);
+    for(let offset=-d/2+1.5;offset<d/2;offset+=3){
+      box(w,.075,.33,x,y-.25,z+offset,beamMat,roofs);
+      box(w,.48,.075,x,y-.525,z+offset,beamMat,roofs);
+      box(w,.075,.33,x,y-.8,z+offset,beamMat,roofs);
+    }
+  }
+  exposedCeiling(4.5,14.2,-3.85,13.2);
+  exposedCeiling(7.5,6,2.25,17.2);
+  exposedCeiling(12.2,12,0,26.2);
+  // Stairwell ceiling is above the next landing, providing clear headroom.
+  exposedCeiling(7.5,8,2.25,10.2,17.9);
   // Left-side corridor lines up with the existing bedroom door.
   wall(.16,.8,-1.5,8.8);wall(.16,1.2,-1.5,13.5);wall(.16,3,-1.5,18.7);
   box(.16,1.7,3,-1.5,7.95,10.8,plaster,envelope);
@@ -63,12 +86,30 @@ window.buildFloorExtension = function (T, model, {box,cylinder,sphere,tube,mat,p
     cylinder(.025,3,2.57,10.5-i*.5625,z,rail,extension);
   }
   tube([[1.63,3,8.4],[1.63,7.5,13.2],[2.57,7.5,13.2],[2.57,12,8.4]],.045,rail,extension);
-  // Ground-to-first entry is represented below the landing, behind the open gate.
-  for(let i=0;i<7;i++)box(2.8,.2,.65,.1,-.25-i*.5,8.1-i*.65,stairStone,extension);
-  const gate=new T.Group();gate.position.set(-1.4,0,8.4);gate.rotation.y=-1.2;extension.add(gate);
+  // Ground-to-first staircase: exposed treads descend through the open first-floor slab.
+  const groundStairs=new T.Group();groundStairs.name='visible-ground-to-first-stairs';extension.add(groundStairs);
+  for(let i=0;i<8;i++){
+    const top=-(i+1)*.5625,z=8.7+i*.6;
+    box(2.9,.14,.6,4.1,top-.07,z,stairStone,groundStairs,.012);
+    box(2.9,.5625,.09,4.1,top+.28125,z-.29,stone,groundStairs);
+    const returnTop=-4.5-(i+1)*.5625,returnZ=12.9-i*.6;
+    box(2.9,.14,.6,.1,returnTop-.07,returnZ,stairStone,groundStairs,.012);
+    box(2.9,.5625,.09,.1,returnTop+.28125,returnZ+.29,stone,groundStairs);
+    for(const x of [2.61,5.65])cylinder(.023,2.9,x,top+1.45,z,rail,groundStairs);
+  }
+  box(7.2,.2,1.15,2.1,-4.6,13.55,stairStone,groundStairs);
+  box(3,.2,1.5,.1,-9.1,7.8,stairStone,groundStairs);
+  for(const x of [-1.5,5.95])box(.18,9,8,x,-4.5,10.8,plaster,groundStairs);
+  box(7.5,9,.18,2.25,-4.5,14.12,plaster,groundStairs);
+  for(const x of [2.61,5.65])tube([[x,3,8.4],[x,-1.5,13.2]],.035,rail,groundStairs);
+  tube([[1.6,-1.5,13.2],[1.6,-6,8.4]],.035,rail,groundStairs);
+  // Guard the sides of the opening while leaving its approach open.
+  for(let z=8.7;z<=13.4;z+=.6)cylinder(.022,3.1,5.79,1.55,z,rail,groundStairs);
+  tube([[5.79,3.1,8.4],[5.79,3.1,13.5],[2.58,3.1,13.5]],.04,rail,groundStairs);
+  const lowerLight=new T.PointLight('#fff0d8',20,12,2);lowerLight.position.set(4,-2.5,11);groundStairs.add(lowerLight);
+  const gate=new T.Group();gate.position.set(2.65,0,8.35);gate.rotation.y=-1.4;extension.add(gate);
   for(let x=0;x<2.8;x+=.26)box(.035,3,.045,x,1.5,0,rail,gate);
   for(const y of [.15,2.9])box(2.8,.045,.045,1.4,y,0,rail,gate);
-  label('STAIRS  /  UP & DOWN',-3.9,10.8);
   // Shared wash lobby leads to a private Western WC and enclosed shower.
   wall(.14,.5,1.4,14.45);wall(.14,3,1.4,18.7);box(.14,1.7,2.5,1.4,7.95,15.95,plaster,envelope);wall(7.5,.16,2.25,20.2);
   box(7.3,.06,5.7,2.25,.045,17.2,stone,extension);
@@ -96,7 +137,7 @@ window.buildFloorExtension = function (T, model, {box,cylinder,sphere,tube,mat,p
   box(2.3,.12,1.35,4.8,2.25,15,white,extension,.05);
   sphere(4.8,2.35,15,.75,.12,.43,white,extension);tube([[5.1,2.3,14.7],[5.1,2.9,14.7],[4.85,2.9,14.9]],.035,chrome,extension);
   box(2.2,2.2,.06,4.8,4.1,14.32,metal,extension);box(2.05,2.05,.02,4.8,4.1,14.27,glass,extension);
-  label('WC',-.05,18);label('WASH + SHOWER',3.9,16.4);
+
   // Front room: a quiet lounge, dining/work table, media wall and balcony opening.
   wall(.4,.18,-5.8,20.2);box(3,1.7,.18,-4.1,7.95,20.2,plaster,envelope);wall(1.1,.18,-2.05,20.2); // The entrance aligns with the passage.
   // Masonry balcony wall: one normal 3 ft timber door and one grilled window.
@@ -163,10 +204,18 @@ window.buildFloorExtension = function (T, model, {box,cylinder,sphere,tube,mat,p
   for(const z of [25.33,25.47,25.68])box(.02,.06,.025,5.84,1.4,z,dark,extension);
   for(const x of [-5.87,5.87])box(.055,.28,11.7,x,.15,26.2,granite,extension);
   box(1.2,.18,.35,0,7.7,20.6,warmLight,extension,.025);
-  // A defined ceiling edge and ordinary flush tube fittings.
-  for(const x of [-5.8,5.8])box(.12,.12,11.7,x,8.7,26.2,cream,roofs);
-  for(const z of [22,29]){box(3.6,.12,.3,-1.6,8.65,z,white,roofs,.025);box(3.4,.04,.22,-1.6,8.57,z,warmLight,roofs,.015);}
-  label('FRONT ROOM',0,30.5);
+  // A conventional three-blade ceiling fan, suspended below the exposed girders.
+  const fanMetal=mat('#d7d0bd',.38),fanTrim=mat('#918875',.42);
+  const frontFan=new T.Group();frontFan.name='front-room-working-ceiling-fan';frontFan.position.set(0,0,26.4);extension.add(frontFan);
+  cylinder(.27,.16,0,8.75,0,fanMetal,frontFan);cylinder(.045,1.5,0,8.04,0,fanTrim,frontFan);
+  cylinder(.34,.3,0,7.2,0,fanMetal,frontFan);cylinder(.25,.08,0,7.01,0,fanTrim,frontFan);
+  const ceilingRotor=new T.Group();ceilingRotor.position.y=7.12;frontFan.add(ceilingRotor);
+  for(let i=0;i<3;i++){
+    const bladePivot=new T.Group();bladePivot.rotation.y=i*Math.PI*2/3;ceilingRotor.add(bladePivot);
+    const shape=new T.Shape();shape.moveTo(.24,-.1);shape.lineTo(1.9,-.22);shape.quadraticCurveTo(2.4,-.26,2.45,-.06);shape.lineTo(2.42,.17);shape.quadraticCurveTo(2.2,.26,1.9,.19);shape.lineTo(.24,.1);shape.closePath();
+    const blade=new T.Mesh(new T.ExtrudeGeometry(shape,{depth:.028,bevelEnabled:true,bevelSize:.015,bevelThickness:.01,bevelSegments:2,steps:1}),fanMetal);blade.rotation.x=Math.PI/2;blade.rotation.y=.04;blade.castShadow=true;blade.receiveShadow=true;bladePivot.add(blade);
+    box(.65,.06,.13,.5,.025,0,fanTrim,bladePivot,.012);
+  }
   // Simple empty balcony with flooring and a continuous guardrail.
   const deck=tile.clone(),deckMap=floorMap.clone();deckMap.repeat.set(6,2);deck.map=deckMap;deck.bumpMap=deckMap;deck.color.set('#b7b4a8');deck.roughness=.86;
   box(12,.08,4,0,.04,34.2,deck,extension);
@@ -174,7 +223,7 @@ window.buildFloorExtension = function (T, model, {box,cylinder,sphere,tube,mat,p
   for(const z of [32.2,34.2,36.2])box(12,.006,.012,0,.085,z,grout,extension);
   for(const x of [-6,6]){box(.055,.09,4,x,3.3,34.2,rail,extension);for(let z=32.2;z<36.3;z+=.5)cylinder(.025,3.3,x,1.65,z,rail,extension);}
   box(12,.09,.055,0,3.3,36.2,rail,extension);for(let x=-6;x<=6;x+=.5)cylinder(.025,3.3,x,1.65,36.2,rail,extension);
-  label('BALCONY',-2.7,34.2);
+
   // A restrained neighboring roofscape replaces the blank exterior in front views.
   // It is hidden in the finished bedroom and in the floor-plan view.
   const outdoors=new T.Group();extension.add(outdoors);
@@ -200,5 +249,5 @@ window.buildFloorExtension = function (T, model, {box,cylinder,sphere,tube,mat,p
   const daylight=new T.DirectionalLight('#fff0db',2.5);daylight.position.set(-4,12,40);daylight.target.position.set(0,1,25);daylight.castShadow=true;
   daylight.shadow.mapSize.set(2048,2048);Object.assign(daylight.shadow.camera,{left:-9,right:9,top:10,bottom:-10,near:1,far:45});daylight.shadow.normalBias=.025;daylight.shadow.bias=-.00015;daylight.shadow.radius=3;
   extension.add(daylight,daylight.target);
-  return {barriers:barriers.map(b=>({...b,x:-b.x})),update(interior,evening,cameraZ){outdoors.visible=interior&&cameraZ>20.3;skyMaterial.color.set(evening?'#8e8c9c':'#ffffff');roofs.visible=interior;envelope.visible=interior;lowWalls.visible=!interior;planLabels.visible=!interior;daylight.intensity=evening?.12:2.5;lights.forEach(light=>light.intensity=evening?17:6);warmLight.emissiveIntensity=evening?1.4:.3;}};
+  return {animate(dt){ceilingRotor.rotation.y=(ceilingRotor.rotation.y+dt*13)%(Math.PI*2);},barriers:barriers.map(b=>({...b,x:-b.x})),update(interior,evening,cameraZ){outdoors.visible=interior&&cameraZ>20.3;skyMaterial.color.set(evening?'#8e8c9c':'#ffffff');roofs.visible=interior;envelope.visible=interior;lowWalls.visible=!interior;daylight.intensity=evening?.12:2.5;lights.forEach(light=>light.intensity=evening?17:6);warmLight.emissiveIntensity=evening?1.4:.3;}};
 };
