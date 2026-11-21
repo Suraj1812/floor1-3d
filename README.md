@@ -52,6 +52,6 @@ Movement uses four fixed arrow buttons: tap for a small step, hold to walk, or f
 
 The desk is lamp-free, with a staggered compact keyboard, larger modifier keys, spacebar and printed legends, plus a sculpted wireless mouse with separate buttons, wheel and side controls. The wall accessories organizer has been removed.
 
-The main monitor tilts backward 10 degrees. A silver MacBook Air M2-style model on the stand has black keys, a large trackpad, a notched display and the M2 Air port layout. Both computer screens show a calm macOS-inspired desktop with menu bar and dock.
+The main monitor follows the supplied curved Samsung-style reference, with a genuinely curved screen and shell, slim black bezels, a cylindrical neck and round base; it tilts backward 10 degrees. A silver MacBook Air M2-style model on the stand has black keys, a large trackpad, a notched display and the M2 Air port layout. Both computer screens show a calm macOS-inspired desktop with menu bar and dock.
 
 The PC tower sits beneath the far end of the desk on a low riser, with cables routed behind the desk and the central chair space kept clear.
