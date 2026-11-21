@@ -13,7 +13,7 @@ npm run check
 npm run dev
 ```
 
-Open the local URL printed by the server. Each load starts at the center of the completed back room at maximum zoom-out. The canvas uses icon-only controls without room labels or instruction overlays. Drag the circular joystick to walk, or use WASD / arrow keys; drag the scene to look around. Walk through the existing door into the passage, stairs, WC and shower/wash area, front lounge and empty balcony (flooring and railing only). The view selector includes room shortcuts, whole-floor overview and top view. Scroll or pinch to zoom. Icons control rotation, zoom, lighting and the fan. Open settings for sofa color, the zoom slider and TV tilt. Preferences are saved in the current browser.
+Open the local URL printed by the server. Each load starts at the center of the completed back room at maximum zoom-out. The canvas uses icon-only controls without room labels or instruction overlays. Drag the circular directional buttons to walk, or use WASD / arrow keys; drag the scene to look around. Walk through the existing door into the passage, stairs, WC and shower/wash area, front lounge and empty balcony (flooring and railing only). The view selector includes room shortcuts, whole-floor overview and top view. Scroll or pinch to zoom. Icons control rotation, zoom, lighting and the fan. Open settings for sofa color, the zoom slider and TV tilt. Preferences are saved in the current browser.
 
 ## Build and deploy
 
@@ -44,3 +44,7 @@ The room is a design visualization; furniture proportions and ceiling constructi
 Three.js is distributed under its MIT license, included in `vendor/THREE-LICENSE.txt`. Anime wall artwork was supplied as a design reference and remains the property of its respective rights holders.
 
 Anime decor is isolated from the reference photo at runtime so the continuous peach plaster and scene lighting show between frames, swords and shelves, without a rectangular photo backdrop.
+
+Phones and narrow screens use direct antialiased lighting and soft contact shadows, avoiding precision-sensitive shadow maps and depth-based postprocessing that can cause diagonal bands on mobile GPUs. Desktop retains its shadow and ambient-occlusion pass.
+
+Movement uses four fixed arrow buttons: tap for a small step, hold to walk, or focus a button and press Enter/Space. Drag the scene to look; WASD and keyboard arrows remain available. Movement stops on release, cancellation, a view change or loss of focus.

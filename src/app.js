@@ -6,7 +6,13 @@
     const T = window.THREE;
     const renderer = new T.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
     renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-    renderer.shadowMap.enabled=true;
+    // Phone GPUs can band shadow/depth comparisons across otherwise flat surfaces.
+    // Use direct antialiased lighting plus the existing soft contact shadows there.
+    const mobileRendering=window.matchMedia('(max-width: 700px), (pointer: coarse)').matches;
+    const usePostProcessing=!mobileRendering&&renderer.capabilities.precision==='highp'&&
+      (renderer.capabilities.isWebGL2||renderer.extensions.has('EXT_color_buffer_half_float'));
+    root.dataset.renderQuality=usePostProcessing?'desktop':'mobile';
+    renderer.shadowMap.enabled=usePostProcessing;
     renderer.shadowMap.type=T.PCFSoftShadowMap;
     renderer.shadowMap.autoUpdate=false;
     let shadowState='';
@@ -461,7 +467,7 @@
     const lampBase=cylinder(.22,.04,3.75,2.64,-1.3,metal);sphere(3.75,2.93,-1.3,.23,.25,.23,led);
     const floorExtension=window.buildFloorExtension(T,model,{box,cylinder,sphere,tube,mat,plaster,oak,cream,metal,glass,tile,chrome,linen,screen});
     const ambient=new T.HemisphereLight('#e8f2ff','#a59a87',.7);scene.add(ambient);
-    const sun=new T.DirectionalLight('#fff1d6',2.6);sun.position.set(-3,11,12);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);sun.shadow.camera.left=-10;sun.shadow.camera.right=10;sun.shadow.camera.top=10;sun.shadow.camera.bottom=-10;sun.shadow.normalBias=.018;sun.shadow.bias=-.00015;sun.shadow.radius=3;scene.add(sun);
+    const sun=new T.DirectionalLight('#fff1d6',2.6);sun.position.set(-3,11,12);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);sun.shadow.camera.left=-10;sun.shadow.camera.right=10;sun.shadow.camera.top=10;sun.shadow.camera.bottom=-10;sun.shadow.camera.near=.5;sun.shadow.camera.far=40;sun.shadow.normalBias=.018;sun.shadow.bias=-.00015;sun.shadow.radius=3;scene.add(sun);
     const ledFill=new T.PointLight('#ffd395',10,9,2);ledFill.position.set(3.75,2.93,-1.3);scene.add(ledFill);
     // Back-room gatar-patiya structure, concealed beneath a simple PVC finish.
     // Dimensions and orientation are a visual assumption, not a structural plan.
@@ -515,10 +521,12 @@
     const pmrem=new T.PMREMGenerator(renderer);const envTarget=pmrem.fromScene(envScene,.05);scene.environment=envTarget.texture;pmrem.dispose();
     const shadow=new T.Mesh(new T.PlaneGeometry(12.6,12.6),new T.ShadowMaterial({opacity:.12}));shadow.rotation.x=-Math.PI/2;shadow.position.y=-.41;shadow.receiveShadow=true;scene.add(shadow);
     // Depth-aware ambient occlusion and a restrained HDR glow, rendered locally.
-    const renderTarget=new T.WebGLRenderTarget(1,1,{type:T.HalfFloatType,depthBuffer:true});
+    let renderTarget,postScene,postCamera,postMat;
+    if(usePostProcessing){
+    renderTarget=new T.WebGLRenderTarget(1,1,{type:T.HalfFloatType,depthBuffer:true});
     renderTarget.depthTexture=new T.DepthTexture(1,1,T.UnsignedIntType);
-    const postScene=new T.Scene(),postCamera=new T.OrthographicCamera(-1,1,1,-1,0,1);
-    const postMat=new T.ShaderMaterial({
+    postScene=new T.Scene();postCamera=new T.OrthographicCamera(-1,1,1,-1,0,1);
+    postMat=new T.ShaderMaterial({
       uniforms:{image:{value:renderTarget.texture},depth:{value:renderTarget.depthTexture},inverseProjection:{value:camera.projectionMatrixInverse},resolution:{value:new T.Vector2(1,1)}},
       vertexShader:'varying vec2 uvOut;void main(){uvOut=uv;gl_Position=vec4(position.xy,0.,1.);}',
       fragmentShader:`
@@ -531,7 +539,7 @@
             float radius=1.3;float screenRadius=clamp(55./max(2.,-p.z),.9,11.);float spin=.4;
             for(int i=0;i<24;i++){
               float f=float(i);float a=f*2.399963+spin;float r=sqrt((f+.5)/24.);vec2 uv=uvOut+vec2(cos(a),sin(a))*r*screenRadius*8./resolution;
-              if(uv.x>0.&&uv.x<1.&&uv.y>0.&&uv.y<1.){float sd=texture2D(depth,uv).r;if(sd<.99999){vec3 delta=viewPosition(uv,sd)-p;float len=length(delta);ao+=max(0.,dot(n,delta/max(len,.001))-.12)*smoothstep(radius,0.,len);}}
+              if(uv.x>0.&&uv.x<1.&&uv.y>0.&&uv.y<1.){float sd=texture2D(depth,uv).r;if(sd<.99999){vec3 delta=viewPosition(uv,sd)-p;float len=length(delta);ao+=max(0.,dot(n,delta/max(len,.001))-.12)*(1.-smoothstep(0.,radius,len));}}
             }
           }
           vec3 color=base.rgb*(1.-min(.65,ao*.17));
@@ -542,6 +550,7 @@
         }`,depthTest:false,depthWrite:false,transparent:true
     });
     postScene.add(new T.Mesh(new T.PlaneGeometry(2,2),postMat));
+    }
     const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
     let fanRunning=!reducedMotion.matches,fanTime=0;
     let tvTilt=Number.isFinite(roomState?.widgetState?.privateContent?.tvTilt)?Math.max(0,Math.min(25,roomState.widgetState.privateContent.tvTilt)):12;
@@ -590,11 +599,13 @@
       root.querySelector('[data-zoom-step="-1"]').disabled=distance>=34;
       const nextShadowState=[view,evening,walls.left.visible,walls.right.visible,walls.back.visible,front.visible].join();
       if(nextShadowState!==shadowState){renderer.shadowMap.needsUpdate=true;shadowState=nextShadowState;}
-      renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
+      if(usePostProcessing){
+        renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
+      }else renderer.render(scene,camera);
     }
     function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'back room only: simple warm off-white PVC panels concealing gatar-patiya, slim perimeter tray with warm cove glow and six recessed downlights',lighting:evening?'warm recessed ceiling lights, perimeter cove glow, desk and bedside lamps':'daylight with soft warm ceiling lights and lamps',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{pc:'desktop tower with mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'open on raised aluminum holder',displays:'main monitor plus 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'keyboard legends, mouse wheel, soundbar, remote, USB ports and cable tray'},storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Individual anime reference decor cutouts over continuous peach plaster, raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
     function interiorView(){return ['inside','gallery','ceiling','storage'].includes(view);}
-    const resize=new ResizeObserver(()=>{const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);const size=renderer.getDrawingBufferSize(new T.Vector2());renderTarget.setSize(size.x,size.y);postMat.uniforms.resolution.value.copy(size);camera.aspect=w/h;camera.updateProjectionMatrix();draw();});resize.observe(stage);
+    const resize=new ResizeObserver(()=>{const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);const size=renderer.getDrawingBufferSize(new T.Vector2());if(usePostProcessing){renderTarget.setSize(size.x,size.y);postMat.uniforms.resolution.value.copy(size);}camera.aspect=w/h;camera.updateProjectionMatrix();draw();});resize.observe(stage);
     root.querySelector('[data-view-select]').addEventListener('change',e=>{view=e.target.value;phi=view==='top'?.025:.99;theta=view==='top'?0:-.5;distance=34;if(view==='inside'){walkPosition.set(0,5.25,0);insideYaw=0;insidePitch=0;}if(['front','stairs','wash','balcony'].includes(view)){const presets={front:[0,22.8,0],stairs:[-3.9,7.45,0],wash:[0,16,-0.45],balcony:[0,34,0]};const [x,z,yaw]=presets[view];walkPosition.set(x,5.25,z);insideYaw=yaw;insidePitch=e.target.value==='wash'?-.35:e.target.value==='balcony'?-.6:e.target.value==='stairs'?-.55:e.target.value==='front'?-.15:0;view='inside';distance=34;}if(view==='gallery'){walkPosition.set(0,5.25,0);insideYaw=-2.15;insidePitch=-.28;distance=34;}if(view==='ceiling'){insideYaw=2.35;insidePitch=.78;}if(view==='storage'){insideYaw=.15;insidePitch=-.18;}draw();save();});
     root.querySelectorAll('[data-turn]').forEach(b=>b.addEventListener('click',()=>{if(interiorView()){insideYaw-=Number(b.dataset.turn)*.3;view='inside';}else{theta+=Number(b.dataset.turn)*.3;}draw();save();}));
     root.querySelector('[data-light]').addEventListener('click',()=>{evening=!evening;draw();save();});
@@ -606,14 +617,33 @@
     const options=root.querySelector('.room-options');
     document.addEventListener('pointerdown',e=>{if(options.open&&!options.contains(e.target))options.open=false;});
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&options.open){options.open=false;options.querySelector('summary').focus();}});
-    // Camera-relative movement: joystick, keyboard, and drag-to-look work together.
-    const movement={x:0,y:0},keys=new Set(),joystick=root.querySelector('[data-joystick]'),knob=root.querySelector('.joystick-knob');
-    let stickPointer=null;
-    function stopMovement(){movement.x=movement.y=0;keys.clear();stickPointer=null;knob.style.transform='translate(0px,0px)';}
-    function moveStick(e){const r=joystick.getBoundingClientRect(),dx=e.clientX-r.left-r.width/2,dy=e.clientY-r.top-r.height/2;const scale=Math.min(1,40/Math.max(1,Math.hypot(dx,dy)));movement.x=dx*scale/40;movement.y=-dy*scale/40;knob.style.transform=`translate(${dx*scale}px,${dy*scale}px)`;}
-    joystick.addEventListener('pointerdown',e=>{stickPointer=e.pointerId;joystick.setPointerCapture(e.pointerId);moveStick(e);});
-    joystick.addEventListener('pointermove',e=>{if(e.pointerId===stickPointer)moveStick(e);});
-    for(const event of ['pointerup','pointercancel','lostpointercapture'])joystick.addEventListener(event,stopMovement);
+    // Fixed buttons support both a short step and continuous press-and-hold.
+    const movement={x:0,y:0},keys=new Set(),moveButtons=[...root.querySelectorAll('[data-move]')];
+    const directions={forward:[0,1],back:[0,-1],left:[-1,0],right:[1,0]};
+    let movePointer=null;
+    function stopMovement(){
+      movement.x=movement.y=0;keys.clear();movePointer=null;
+      moveButtons.forEach(button=>button.removeAttribute('data-held'));
+    }
+    function stepDirection(button,dt){
+      [movement.x,movement.y]=directions[button.dataset.move];walk(dt);draw();
+    }
+    for(const button of moveButtons){
+      button.addEventListener('pointerdown',e=>{
+        if(view!=='inside'||movePointer!==null||e.button!==0)return;
+        e.preventDefault();button.focus({preventScroll:true});movePointer=e.pointerId;
+        button.setPointerCapture(e.pointerId);button.setAttribute('data-held','');
+        stepDirection(button,.06);
+      });
+      for(const event of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(event,e=>{
+        if(e.pointerId===movePointer){stopMovement();save();}
+      });
+      button.addEventListener('click',e=>{
+        if(e.detail===0&&view==='inside'){stepDirection(button,.12);stopMovement();save();}
+      });
+      button.addEventListener('contextmenu',e=>e.preventDefault());
+    }
+    root.querySelector('[data-view-select]').addEventListener('change',stopMovement);
     const movementKeys=['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight'];
     window.addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA|BUTTON|SUMMARY/.test(e.target.tagName))return;if(movementKeys.includes(e.code)&&view==='inside'){e.preventDefault();keys.add(e.code);}});
     window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',stopMovement);
