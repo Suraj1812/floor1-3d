@@ -13,7 +13,7 @@ npm run check
 npm run dev
 ```
 
-Open the local URL printed by the server. Drag to look around, scroll or pinch to zoom, or use the view buttons. Sofa color, TV tilt, lighting and fan controls are interactive. Preferences are saved in the current browser.
+Open the local URL printed by the server. Drag to look around, scroll or pinch to zoom, or choose a view from the compact toolbar. Icons control rotation, zoom, lighting and the fan. Open settings for sofa color, the zoom slider and TV tilt. Preferences are saved in the current browser.
 
 ## Build and deploy
 
