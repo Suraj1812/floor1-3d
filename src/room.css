@@ -1,0 +1,8 @@
+#room-three-view { color: var(--foreground); }
+  #room-three-view .room-toolbar { justify-content: flex-start; gap: calc(var(--font-size-base)*.5); padding-right: 90px; }
+  #room-three-view .room-toolbar label { margin-left: auto; }
+  #room-three-view .room-toolbar label { max-width:180px; }
+  #room-three-view .room-stage { width:100%; height: min(640px, 85vw); min-height:340px; touch-action:none; cursor:grab; }
+  #room-three-view .room-stage:active { cursor:grabbing; }
+  #room-three-view canvas { display:block; width:100%; height:100%; }
+  @media(max-width:500px) { #room-three-view .room-toolbar {padding-right:0;} }

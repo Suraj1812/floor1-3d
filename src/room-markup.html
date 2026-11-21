@@ -1,0 +1,22 @@
+<div id="room-three-view">
+  <div class="viz-row room-toolbar">
+    <span>12 × 12 ft</span>
+    <button class="btn" type="button" data-view="room" aria-pressed="false">Overview</button>
+    <button class="btn" type="button" data-view="inside" aria-pressed="true">Room center</button>
+    <button class="btn" type="button" data-view="storage" aria-pressed="false">Bed &amp; storage</button>
+    <button class="btn" type="button" data-view="gallery" aria-pressed="false">Sofa &amp; anime</button>
+    <button class="btn" type="button" data-view="ceiling" aria-pressed="false">Ceiling</button>
+    <button class="btn" type="button" data-view="top" aria-pressed="false">Top view</button>
+    <button class="btn" type="button" data-turn="-1" aria-label="Rotate room left">Left</button>
+    <button class="btn" type="button" data-turn="1" aria-label="Rotate room right">Right</button>
+    <button class="btn" type="button" data-light aria-pressed="false">Warm evening</button>
+    <button class="btn" type="button" data-fan aria-pressed="true">Fan on</button>
+    <label class="viz-row">Zoom <input class="form-range" aria-label="Zoom" type="range" min="0" max="100" value="50" step="1" /></label>
+    <label class="viz-row">TV tilt <output class="tabular-nums" data-tv-angle>12°</output><input class="form-range" data-tv-tilt aria-label="TV screen tilt" type="range" min="0" max="25" value="12" step="1" /></label>
+    <label class="viz-row">Sofa color <select class="form-select" data-sofa-color aria-label="Sofa color"><option value="dustyBlue">Dusty blue</option><option value="camel">Camel</option><option value="terracotta">Terracotta</option><option value="navy">Midnight navy</option><option value="charcoal">Charcoal grey</option></select></label>
+  </div>
+  <div class="room-stage" role="img" aria-label="Interactive 3D model of a 12 by 12 foot bedroom with a dusty blue L-shaped sofa and three framed prints below the air conditioner. The user's reference photograph of anime posters and three horizontal swords is displayed on the left wall. Desk at back right, bed at front right, oscillating wall fan between bed and desk, air conditioner on back wall, door at front left and window at front. Sofa and anime opens a room-center view of the sofa. Drag to rotate, pinch or scroll to zoom."></div>
+  <div class="viz-row text-small text-muted"><span>Drag to look around · Scroll or pinch to zoom</span><span>Center camera · Exposed gatar-patiya ceiling</span></div>
+  <div class="room-error" role="alert" hidden></div>
+  <img class="anime-reference-source" src="./assets/anime-wall.jpg" alt="" hidden />
+</div>
