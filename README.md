@@ -60,4 +60,6 @@ The curved monitor is turned sideways 15 degrees while retaining its backward ti
 
 An interactive wall switchboard beside the desk has separate ceiling, cove, fan and desk-power rockers, two three-pin outlets and USB-A/USB-C ports. Tap the 3D rockers or use Room settings for lights and desk power; the fan toolbar stays synchronized. Circuit preferences persist locally. Desk power switches the monitor and TV display; the MacBook remains on battery.
 
-The bed has a plump rounded mattress, a lofted sage linen duvet with continuous side and foot draping, a loose oatmeal throw and soft sleeping and accent pillows. Shaped surfaces and broad fabric folds replace the previous flat quilt grid.
+The bed uses a warm off-white fitted sheet, a plain duvet matching the selected sofa theme and a single pillow in a lighter shade of that theme. A rounded mattress, gentle fabric folds and a short side drape keep the simple neutral bedding soft.
+
+Room settings → Bed & sofa theme changes both the sofa and bedding together, without moving the camera. The shared selection persists locally.
