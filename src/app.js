@@ -517,32 +517,66 @@
       const print=new T.Mesh(new T.PlaneGeometry(1.08,1.53),new T.MeshStandardMaterial({map:neutralPrint(i),roughness:.94}));print.position.set(x,0,.046);bedArt.add(print);
       const reverse=print.clone();reverse.position.z=-.036;reverse.rotation.y=Math.PI;bedArt.add(reverse);bedArtReverse.push(reverse);
     }
-    // Single bed with head at front window.
-    box(3,.5,6.5,4.45,.43,2.65,oak,model,.065);
-    for(const x of [3.1,5.8])for(const z of [-.35,5.65])box(.16,.3,.16,x,.15,z,oakEdge);
-    box(2.92,.48,6.3,4.45,.88,2.65,cream,model,.15);
-    box(3,1.9,.16,4.45,1.2,5.88,oak,model,.07);
-    box(2.98,.12,4.55,4.45,1.12,1.79,fabric,model,.025);
-    function quiltHeight(x,z){return .018*Math.cos((x+z)*18)*Math.cos((x-z)*18)+.02*Math.sin(z*7+x*5)+.017*Math.sin(x*20+z*3);}
-    const stitch=new T.LineBasicMaterial({color:'#a2a195',transparent:true,opacity:.55});
-    for(let k=-10;k<20;k++){
-      const intercept=k*.35, pts=[];
-      for(let j=0;j<=100;j++){const x=2.99+j*2.92/100,z=x-4.45+intercept;if(z>=-.46&&z<=4.03)pts.push([x,1.265+quiltHeight(x-4.45,z-1.79),z]);}if(pts.length>1)line3(pts,stitch);
+    // Soft single bed: a rounded mattress, lofted duvet and naturally settled pillows.
+    const bed=new T.Group();bed.name='plush-bed-with-draped-linen';model.add(bed);
+    box(3,.44,6.5,4.45,.4,2.65,oak,bed,.065);
+    for(const x of [3.1,5.8])for(const z of [-.35,5.65])box(.16,.3,.16,x,.15,z,oakEdge,bed);
+    box(3,1.9,.16,4.45,1.2,5.88,oak,bed,.07);
+    const mattressMat=mat('#eee8dc',.96);mattressMat.map=clothMap;mattressMat.bumpMap=clothMap;mattressMat.bumpScale=.005;
+    const duvetMat=mat('#b9c1b0',.99);duvetMat.map=clothMap;duvetMat.bumpMap=clothMap;duvetMat.bumpScale=.009;duvetMat.side=T.DoubleSide;
+    const pillowFabric=mat('#f2eee5',.98);pillowFabric.map=clothMap;pillowFabric.bumpMap=clothMap;pillowFabric.bumpScale=.006;
+    const accentFabric=mat('#bdab92',.99);accentFabric.map=clothMap;accentFabric.bumpMap=clothMap;accentFabric.bumpScale=.007;
+    function softCushion(sx,sy,sz,material,parent=bed){
+      const geometry=new T.SphereGeometry(1,56,28),vertices=geometry.attributes.position;
+      const rounded=v=>Math.sign(v)*Math.pow(Math.abs(v),.48);
+      for(let i=0;i<vertices.count;i++){
+        const x=vertices.getX(i),y=vertices.getY(i),z=vertices.getZ(i);
+        const crease=.012*Math.sin(x*19+z*13)*Math.pow(1-Math.abs(y),3);
+        vertices.setXYZ(i,rounded(x)*sx,rounded(y)*sy+crease,rounded(z)*sz);
+      }
+      geometry.computeVertexNormals();const mesh=new T.Mesh(geometry,material);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;
     }
-    for(let k=-10;k<20;k++){
-      const pts=[];for(let j=0;j<=100;j++){const x=2.99+j*2.92/100,z=-x+4.45+k*.35;if(z>=-.46&&z<=4.03)pts.push([x,1.265+quiltHeight(x-4.45,z-1.79),z]);}if(pts.length>1)line3(pts,stitch);
+    const mattress=softCushion(1.46,.34,3.15,mattressMat);mattress.position.set(4.45,.99,2.65);
+    // Soft piping around the mattress side, with no hard slab edge.
+    const mattressSeam=[];
+    for(let i=0;i<=144;i++){const angle=i/144*Math.PI*2,p=v=>Math.sign(v)*Math.pow(Math.abs(v),.18);mattressSeam.push([4.45+1.455*p(Math.cos(angle)),1.02,2.65+3.145*p(Math.sin(angle))]);}
+    tube(mattressSeam,.008,pillowFabric,bed);
+    function duvetHeight(x,z){
+      const smooth=v=>{v=Math.max(0,Math.min(1,v));return v*v*(3-2*v);};
+      const sideDrop=.55*smooth((-x-1.31)/.43),footDrop=.42*smooth((-.27-z)/.39);
+      const loft=.12*Math.max(0,1-x*x/2.8)*Math.max(0,1-Math.pow((z-1.7)/2.65,4));
+      const folds=.035*Math.sin(z*3.7+x*2.2)+.024*Math.sin(x*8-z*2.5)+.012*Math.sin(z*13+x*5);
+      const turnedEdge=.19*Math.exp(-Math.pow((z-3.88+.045*Math.sin(x*3))/.16,2));
+      return 1.43+loft+folds+turnedEdge-sideDrop-footDrop;
     }
-    box(2.96,.16,.55,4.45,1.26,3.72,fabric,model,.05);
-    const pillowGeo=new T.SphereGeometry(1,64,32),pp=pillowGeo.attributes.position;
-    for(let i=0;i<pp.count;i++){const x=pp.getX(i),y=pp.getY(i),z=pp.getZ(i),power=v=>Math.sign(v)*Math.pow(Math.abs(v),.42);pp.setXYZ(i,power(x)*1.05,power(y)*.18+.013*Math.sin(x*18+z*9),power(z)*.56);}pillowGeo.computeVertexNormals();
-    const pillow=new T.Mesh(pillowGeo,linen);pillow.position.set(4.45,1.28,5.03);pillow.rotation.y=-.04;pillow.castShadow=true;pillow.receiveShadow=true;model.add(pillow);
-    const pillowSeam=[];for(let j=0;j<=120;j++){const a=j/120*Math.PI*2;pillowSeam.push([4.45+Math.sign(Math.cos(a))*Math.pow(Math.abs(Math.cos(a)),.4)*1.055,1.28,5.03+Math.sign(Math.sin(a))*Math.pow(Math.abs(Math.sin(a)),.4)*.56]);}tube(pillowSeam,.008,cream);
-    // Sculpted duvet surface: small quilt loft and relaxed fabric folds.
-    const duvetGeo=new T.PlaneGeometry(2.98,4.55,72,100);duvetGeo.rotateX(-Math.PI/2);const dp=duvetGeo.attributes.position;
-    for(let i=0;i<dp.count;i++){const x=dp.getX(i),z=dp.getZ(i);dp.setY(i,quiltHeight(x,z));}duvetGeo.computeVertexNormals();
-    const duvet=new T.Mesh(duvetGeo,fabric);duvet.position.set(4.45,1.26,1.79);duvet.receiveShadow=true;duvet.castShadow=true;model.add(duvet);
-    for(const side of [-1,1]){const g=new T.PlaneGeometry(.3,4.55,12,64);g.rotateX(-Math.PI/2);const a=g.attributes.position;for(let i=0;i<a.count;i++){const x=a.getX(i),u=x+.15;a.setX(i,side*(1.49+u*.35));a.setY(i,-u*1.8+.018*Math.sin(a.getZ(i)*8));}g.computeVertexNormals();const sideMat=fabric.clone();sideMat.side=T.DoubleSide;const m=new T.Mesh(g,sideMat);m.position.set(4.45,1.26,1.79);m.receiveShadow=true;m.castShadow=true;model.add(m);}
-    for(const z of [1.4,3.8])box(2.6,.08,.025,4.45,.48,z,oakEdge);
+    // One continuous cloth surface rolls over the exposed side and foot of the bed.
+    const duvetGeometry=new T.PlaneGeometry(3.24,4.88,84,116);duvetGeometry.rotateX(-Math.PI/2);
+    const duvetVertices=duvetGeometry.attributes.position;
+    for(let i=0;i<duvetVertices.count;i++){
+      const x=duvetVertices.getX(i)-.14,z=duvetVertices.getZ(i)+1.8;
+      duvetVertices.setXYZ(i,x,duvetHeight(x,z),z);
+    }
+    duvetGeometry.computeVertexNormals();const duvet=new T.Mesh(duvetGeometry,duvetMat);duvet.position.x=4.45;duvet.castShadow=true;duvet.receiveShadow=true;bed.add(duvet);
+    // Fine fabric hem follows the same draped surface.
+    const hem=[];for(let i=0;i<=100;i++){const z=-.62+i*4.82/100;hem.push([4.45-1.745,duvetHeight(-1.745,z)+.004,z]);}tube(hem,.006,duvetMat,bed);
+    // A loose folded throw lies over the foot, with broader, less regular ripples.
+    const throwGeometry=new T.PlaneGeometry(3.22,1.04,64,32);throwGeometry.rotateX(-Math.PI/2);
+    const throwVertices=throwGeometry.attributes.position;
+    for(let i=0;i<throwVertices.count;i++){
+      const x=throwVertices.getX(i)-.14,z=throwVertices.getZ(i)+.3;
+      throwVertices.setXYZ(i,x,duvetHeight(x,z)+.035+.025*Math.sin(x*7+z*5)+.016*Math.cos(z*15),z);
+    }
+    throwGeometry.computeVertexNormals();const bedThrowMat=accentFabric.clone();bedThrowMat.side=T.DoubleSide;
+    const throwMesh=new T.Mesh(throwGeometry,bedThrowMat);throwMesh.position.x=4.45;throwMesh.castShadow=true;throwMesh.receiveShadow=true;bed.add(throwMesh);
+    const sleepingPillow=softCushion(1.12,.27,.56,pillowFabric);sleepingPillow.position.set(4.45,1.6,5.13);sleepingPillow.rotation.set(.14,-.055,.02);
+    const smallPillow=softCushion(.57,.23,.43,accentFabric);smallPillow.position.set(4.12,1.67,4.5);smallPillow.rotation.set(-.08,.13,-.05);
+    for(const pillow of [sleepingPillow,smallPillow]){
+      const seamPoints=[],scale=pillow===sleepingPillow?[1.12,.56]:[.57,.43];
+      for(let i=0;i<=96;i++){const angle=i/96*Math.PI*2,p=v=>Math.sign(v)*Math.pow(Math.abs(v),.48);seamPoints.push([p(Math.cos(angle))*scale[0],0,p(Math.sin(angle))*scale[1]]);}
+      // The seam is in the pillow's local coordinates, so it follows the relaxed tilt.
+      const seamGroup=new T.Group();seamGroup.position.copy(pillow.position);seamGroup.rotation.copy(pillow.rotation);bed.add(seamGroup);tube(seamPoints,.006,pillowFabric,seamGroup);
+    }
+    for(const z of [1.4,3.8])box(2.6,.08,.025,4.45,.48,z,oakEdge,bed);
     // Rug with a procedural woven surface, no external image assets.
     const weave=document.createElement('canvas');weave.width=256;weave.height=256;
     const ctx=weave.getContext('2d');ctx.fillStyle='#b4a38b';ctx.fillRect(0,0,256,256);
@@ -806,7 +840,7 @@
         renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
       }else renderer.render(scene,camera);
     }
-    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'back room only: simple warm off-white PVC panels concealing gatar-patiya, slim perimeter tray with warm cove glow and six recessed downlights',lighting:evening?'warm recessed ceiling lights, perimeter cove glow and bedside lamp':'daylight with soft warm ceiling lights and bedside lamp',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{chair:'black and muted red racing-style gaming chair, high back, headrest and lumbar cushions, side bolsters, adjustable arms and five twin casters',pc:'desktop tower below the desk on a low riser at the far end, mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'silver MacBook Air M2, black keyboard, large trackpad, notched display, MagSafe and two USB-C ports, open on raised aluminum holder',displays:'reference-style curved black monitor with slim bezels and round base, rotated sideways 15 degrees and tilted backward 10 degrees, independent Windows-style PC desktop with blue silk wallpaper and dark code editor; MacBook retains its macOS-style landscape wallpaper; 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'staggered 75-percent keyboard with shaped keycaps and legends, sculpted wireless mouse with split buttons and wheel, soundbar, remote, USB ports and cable tray; clear desk without lamp or wall accessories organizer'},storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Individual anime reference decor cutouts over continuous peach plaster, raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{circuits:{...circuits},version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
+    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'back room only: simple warm off-white PVC panels concealing gatar-patiya, slim perimeter tray with warm cove glow and six recessed downlights',lighting:evening?'warm recessed ceiling lights, perimeter cove glow and bedside lamp':'daylight with soft warm ceiling lights and bedside lamp',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{chair:'black and muted red racing-style gaming chair, high back, headrest and lumbar cushions, side bolsters, adjustable arms and five twin casters',pc:'desktop tower below the desk on a low riser at the far end, mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'silver MacBook Air M2, black keyboard, large trackpad, notched display, MagSafe and two USB-C ports, open on raised aluminum holder',displays:'reference-style curved black monitor with slim bezels and round base, rotated sideways 15 degrees and tilted backward 10 degrees, independent Windows-style PC desktop with blue silk wallpaper and dark code editor; MacBook retains its macOS-style landscape wallpaper; 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'staggered 75-percent keyboard with shaped keycaps and legends, sculpted wireless mouse with split buttons and wheel, soundbar, remote, USB ports and cable tray; clear desk without lamp or wall accessories organizer'},bed:'plush rounded mattress, lofted sage linen duvet with natural folds and side drape, oatmeal folded throw, fluffy sleeping pillow and accent cushion',storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Individual anime reference decor cutouts over continuous peach plaster, raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{circuits:{...circuits},version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
     function interiorView(){return ['inside','gallery','ceiling','storage'].includes(view);}
     const resize=new ResizeObserver(()=>{const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);const size=renderer.getDrawingBufferSize(new T.Vector2());if(usePostProcessing){renderTarget.setSize(size.x,size.y);postMat.uniforms.resolution.value.copy(size);}camera.aspect=w/h;camera.updateProjectionMatrix();draw();});resize.observe(stage);
     root.querySelector('[data-view-select]').addEventListener('change',e=>{view=e.target.value;phi=view==='top'?.025:.99;theta=view==='top'?0:-.5;distance=34;if(view==='inside'){walkPosition.set(0,5.25,0);insideYaw=0;insidePitch=0;}if(['front','stairs','wash','balcony'].includes(view)){const presets={front:[0,22.8,0],stairs:[-3.9,7.45,0],wash:[0,16,-0.45],balcony:[0,34,0]};const [x,z,yaw]=presets[view];walkPosition.set(x,5.25,z);insideYaw=yaw;insidePitch=e.target.value==='wash'?-.35:e.target.value==='balcony'?-.6:e.target.value==='stairs'?-.55:e.target.value==='front'?-.15:0;view='inside';distance=34;}if(view==='gallery'){walkPosition.set(0,5.25,0);insideYaw=-2.15;insidePitch=-.28;distance=34;}if(view==='ceiling'){insideYaw=2.35;insidePitch=.78;}if(view==='storage'){insideYaw=.15;insidePitch=-.18;}draw();save();});
