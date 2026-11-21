@@ -408,7 +408,7 @@
     for(let i=0;i<6;i++)box(2.58,.018,.06,0,6.87+i*.025,-5.23,metal,back);
     box(2.96,.012,.012,0,7.14,-5.265,frame,back);box(.06,.018,.012,1.2,6.98,-5.26,led,back);
     const lampBase=cylinder(.22,.04,3.75,2.64,-1.3,metal);sphere(3.75,2.93,-1.3,.23,.25,.23,led);
-    const floorExtension=window.buildFloorExtension(T,model,{box,cylinder,sphere,tube,mat,plaster,oak,cream,metal,glass,tile,chrome,linen});
+    const floorExtension=window.buildFloorExtension(T,model,{box,cylinder,sphere,tube,mat,plaster,oak,cream,metal,glass,tile,chrome,linen,screen});
     const ambient=new T.HemisphereLight('#e8f2ff','#a59a87',.7);scene.add(ambient);
     const sun=new T.DirectionalLight('#fff1d6',2.6);sun.position.set(-3,11,12);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);sun.shadow.camera.left=-10;sun.shadow.camera.right=10;sun.shadow.camera.top=10;sun.shadow.camera.bottom=-10;sun.shadow.normalBias=.018;sun.shadow.bias=-.00015;sun.shadow.radius=3;scene.add(sun);
     const fill=new T.PointLight('#ffc675',32,18,2);fill.position.set(0,7,-4.5);scene.add(fill);
@@ -490,7 +490,7 @@
       animeReverseFaces.forEach(art=>art.visible=!walls.left.visible);
       bedArtReverse.forEach(art=>art.visible=!walls.back.visible);
       front.visible=interior||camera.position.z<-.8;frontLow.visible=!front.visible;curtains.visible=front.visible;ceiling.visible=interior;
-      windowAssembly.visible=true;floorExtension.update(interior);
+      windowAssembly.visible=true;floorExtension.update(interior,evening,walkPosition.z);
       root.querySelector('.walk-controls').hidden=!inside;
       const zone=(Math.abs(walkPosition.x)>6.3||walkPosition.z>36.3||walkPosition.z< -6.3)?'Outside':walkPosition.z<6.2?'Back room':walkPosition.z<20.2?(walkPosition.x>1.5||walkPosition.z<8.4?'Passage':walkPosition.z<14.2?'Stairs':walkPosition.x> -1.4?'Toilet':'Wash & shower'):walkPosition.z<32.2?'Front room':walkPosition.z<36.3?'Balcony':'Outside';
       root.querySelector('[data-location]').textContent=interior?zone:'Whole floor';
