@@ -1,5 +1,5 @@
 /* Additional first-floor spaces. The original back-room geometry stays in app.js. */
-window.buildFloorExtension = function (T, model, {box,cylinder,sphere,tube,mat,plaster,oak,cream,metal,glass,tile,chrome,linen,screen}) {
+window.buildFloorExtension = function (T, model, {box,cylinder,sphere,tube,mat,plaster,oak,cream,metal,glass,tile,chrome,linen,screen,createMirror}) {
   const extension = new T.Group(); extension.name='front-stairs-bathroom-balcony'; model.add(extension);
   // Front-up plan: the service block is on the sketch's right side.
   extension.scale.x=-1;
@@ -136,7 +136,8 @@ window.buildFloorExtension = function (T, model, {box,cylinder,sphere,tube,mat,p
   box(2.1,1.65,1.2,4.8,1.35,15,oak,extension,.04);
   box(2.3,.12,1.35,4.8,2.25,15,white,extension,.05);
   sphere(4.8,2.35,15,.75,.12,.43,white,extension);tube([[5.1,2.3,14.7],[5.1,2.9,14.7],[4.85,2.9,14.9]],.035,chrome,extension);
-  box(2.2,2.2,.06,4.8,4.1,14.32,metal,extension);box(2.05,2.05,.02,4.8,4.1,14.27,glass,extension);
+  box(2.2,2.2,.06,4.8,4.1,14.32,metal,extension);
+  const toiletMirror=createMirror(2.05,2.05,extension);toiletMirror.name='toilet-vanity-live-mirror';toiletMirror.position.set(4.8,4.1,14.358);
 
   // Front room: a quiet lounge, dining/work table, media wall and balcony opening.
   wall(.4,.18,-5.8,20.2);box(3,1.7,.18,-4.1,7.95,20.2,plaster,envelope);wall(1.1,.18,-2.05,20.2); // The entrance aligns with the passage.

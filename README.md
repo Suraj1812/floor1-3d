@@ -63,3 +63,5 @@ An interactive wall switchboard beside the desk has separate cove, fan and desk-
 The bed uses a warm off-white fitted sheet, a plain duvet matching the selected sofa theme and a single pillow in a lighter shade of that theme. A rounded mattress, gentle fabric folds and a short side drape keep the simple neutral bedding soft.
 
 Room settings → Bed & sofa theme changes both the sofa and bedding together, without moving the camera. The shared selection persists locally.
+
+The wardrobe left door and toilet/wash vanity use live planar mirrors that render the current scene from a reflected camera, including camera movement and animated furnishings. Mirrors are untinted, with 1024 px capture targets on desktop and 512 px on phones. A shared capture guard prevents recursive mirror rendering. The local reflector is adapted from Three.js r160 under its bundled MIT license.
