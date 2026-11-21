@@ -160,11 +160,11 @@
     box(.85,1.15,1.15,5.25,1.87,-1.75,oak,model,.03);
     for(const y of [1.55,1.95,2.3])box(.34,.025,.04,5.25,y,-1.16,metal);
     // Reference-style curved monitor with a round base and cylindrical neck.
-    const monitorBase=cylinder(.39,.035,5.31,2.612,-3.65,graphite);monitorBase.scale.x=.88;
-    tube([[5.31,2.64,-3.65],[5.37,2.9,-3.65],[5.47,3.21,-3.65]],.058,graphite);
-    sphere(5.47,3.24,-3.65,.07,.08,.1,metal);
+    const monitorBase=cylinder(.39,.035,5.31,2.612,-4.05,graphite);monitorBase.scale.x=.88;
+    tube([[5.31,2.64,-4.05],[5.37,2.9,-4.05],[5.47,3.21,-4.05]],.058,graphite);
+    sphere(5.47,3.24,-4.05,.07,.08,.1,metal);
     const monitorPivot=new T.Group();monitorPivot.name='curved-monitor-angled-sideways-with-backward-tilt';
-    monitorPivot.position.set(5.45,3.65,-3.65);monitorPivot.rotation.set(0,Math.PI/12,-Math.PI/18);model.add(monitorPivot);
+    monitorPivot.position.set(5.45,3.65,-4.05);monitorPivot.rotation.set(0,Math.PI/12,-Math.PI/18);model.add(monitorPivot);
     const curvedPanel=new T.Group();curvedPanel.rotation.y=-Math.PI/2;monitorPivot.add(curvedPanel);
     const monitorRadius=4.5;
     function bendMonitorGeometry(geometry){
@@ -210,7 +210,7 @@
     for(let i=0;i<14;i++)box(.06,.009,.005,-.48+i*.073,-.64,-.037,metal,curvedPanel);
 
     // Raised aluminum laptop stand with an open, angled laptop.
-    const laptopStand=new T.Group();laptopStand.name='silver-macbook-air-m2-on-raised-holder';laptopStand.position.set(4.85,2.59,-1.9);laptopStand.rotation.y=-Math.PI/2;model.add(laptopStand);
+    const laptopStand=new T.Group();laptopStand.name='silver-macbook-air-m2-on-raised-holder';laptopStand.position.set(4.85,2.59,-1.73);laptopStand.rotation.y=-Math.PI/2;model.add(laptopStand);
     box(.87,.035,.62,0,.025,0,metal,laptopStand,.012);
     for(const x of [-.34,.34]){
       const strut=box(.055,.4,.065,x,.235,-.03,metal,laptopStand,.01);strut.rotation.x=-.32;
@@ -242,7 +242,7 @@
     box(.008,.012,.08,-.572,0,-.29,metal,laptopBase,.002);
     for(const z of [-.155,-.05])box(.008,.011,.041,-.572,0,z,macKeys,laptopBase,.002);
     const headphoneJack=cylinder(.008,.008,.572,0,-.22,macKeys,laptopBase);headphoneJack.rotation.z=Math.PI/2;
-    tube([[5.34,2.98,-1.95],[5.62,2.9,-2.05],[5.72,2.35,-2.7],[5.92,.5,-4]],.012,graphite);
+    tube([[5.34,2.98,-1.78],[5.62,2.9,-1.88],[5.72,2.35,-2.7],[5.92,.5,-4]],.012,graphite);
     const deskMat=mat('#424744');deskMat.map=clothMap;box(1.3,.018,2.25,4.15,2.596,-3.5,deskMat,model,.006);
     tube([[5.44,3.1,-3.6],[5.65,2.65,-3.9],[5.75,2,-4.2],[5.8,.35,-4.2],[5.96,.25,-4]],.018,graphite);
     box(.03,.32,.58,5.98,.52,-4,cream);for(const z of [-4.16,-3.86])for(const y of [.47,.56])box(.015,.025,.018,5.955,y,z,graphite);
