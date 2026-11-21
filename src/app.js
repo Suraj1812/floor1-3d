@@ -269,6 +269,43 @@
     box(.15,.28,.95,-.48,2.03,0,graphite,chair,.055);
     for(const z of [-.8,.8]){box(.08,.53,.08,.07,1.95,z,metal,chair);box(.8,.12,.14,.07,2.2,z,graphite,chair,.03);}
     for(let i=0;i<5;i++){const a=i*Math.PI*2/5;const leg=box(1.05,.08,.1,Math.cos(a)*.47,.29,Math.sin(a)*.47,metal,chair);leg.rotation.y=-a;sphere(Math.cos(a)*.94,.18,Math.sin(a)*.94,.12,.13,.12,graphite,chair);}
+    // Compact accessories station on the clear wall beside the workstation.
+    const accessories=new T.Group();accessories.name='headphone-earbuds-phone-wall-organizer';
+    accessories.position.set(5.94,4.3,.32);accessories.rotation.y=-Math.PI/2;model.add(accessories);
+    box(1.85,.94,.055,0,0,0,oak,accessories,.025);
+    box(1.85,.055,.44,0,-.44,.2,graphite,accessories,.015);
+    for(const x of [-.83,.83])for(const y of [-.34,.34]){
+      const screw=cylinder(.018,.012,x,y,.034,metal,accessories);screw.rotation.x=Math.PI/2;
+    }
+    // Wireless over-ear headphones hang on a padded hook, clear of the desk.
+    box(.18,.09,.32,-.55,.24,.2,graphite,accessories,.025);
+    box(.18,.12,.055,-.55,.29,.35,graphite,accessories,.016);
+    tube([[-.82,-.04,.29],[-.82,.24,.29],[-.71,.41,.29],[-.55,.45,.29],[-.39,.41,.29],[-.28,.24,.29],[-.28,-.04,.29]],.038,graphite,accessories);
+    tube([[-.79,.18,.295],[-.7,.36,.295],[-.55,.4,.295],[-.4,.36,.295],[-.31,.18,.295]],.025,metal,accessories);
+    for(const x of [-.81,-.29]){
+      box(.135,.28,.18,x,-.105,.3,graphite,accessories,.045);
+      box(.035,.23,.15,x+(x<-.5?.065:-.065),-.105,.3,mat('#45494a',.95),accessories,.012);
+    }
+    box(.035,.06,.015,-.82,-.16,.4,metal,accessories,.004);
+    // Slightly reclined phone, with a front retaining lip and charging lead.
+    const phoneDock=new T.Group();phoneDock.position.set(.08,-.12,.22);phoneDock.rotation.x=-.15;accessories.add(phoneDock);
+    box(.36,.6,.045,0,0,0,metal,phoneDock,.025);
+    box(.31,.55,.025,0,.015,.033,graphite,phoneDock,.019);
+    const phoneScreen=mat('#25424c',.28);phoneScreen.emissive.set('#18333e');phoneScreen.emissiveIntensity=.3;
+    box(.275,.485,.008,0,.018,.05,phoneScreen,phoneDock,.012);
+    box(.08,.016,.009,0,.235,.056,graphite,phoneDock,.004);
+    box(.09,.008,.009,0,-.205,.056,cream,phoneDock,.002);
+    box(.38,.065,.1,.08,-.39,.31,graphite,accessories,.012);
+    tube([[.08,-.38,.24],[.08,-.47,.22],[.25,-.48,.16],[.84,-.48,.08]],.006,graphite,accessories);
+    // Bluetooth earbuds in a small open charging case on the same shelf.
+    box(.35,.14,.23,.59,-.345,.23,cream,accessories,.04);
+    box(.28,.018,.17,.59,-.269,.23,graphite,accessories,.008);
+    const caseLid=box(.35,.035,.23,.59,-.16,.13,cream,accessories,.012);caseLid.rotation.x=-1.05;
+    for(const x of [.51,.67]){
+      sphere(x,-.24,.23,.047,.06,.045,cream,accessories);
+      cylinder(.018,.095,x,-.275,.25,cream,accessories);
+    }
+    box(.025,.008,.008,.59,-.34,.35,led,accessories);
     // Wall fan centered over the gap between desk end (-0.95 ft) and bed foot (-0.6 ft).
     const fanWallZ=(-.95-.6)/2;
     const fanMount=new T.Group();fanMount.name='wall-fan-mount';model.add(fanMount);
@@ -603,7 +640,7 @@
         renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
       }else renderer.render(scene,camera);
     }
-    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'back room only: simple warm off-white PVC panels concealing gatar-patiya, slim perimeter tray with warm cove glow and six recessed downlights',lighting:evening?'warm recessed ceiling lights, perimeter cove glow, desk and bedside lamps':'daylight with soft warm ceiling lights and lamps',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{pc:'desktop tower with mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'open on raised aluminum holder',displays:'main monitor plus 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'keyboard legends, mouse wheel, soundbar, remote, USB ports and cable tray'},storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Individual anime reference decor cutouts over continuous peach plaster, raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
+    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'back room only: simple warm off-white PVC panels concealing gatar-patiya, slim perimeter tray with warm cove glow and six recessed downlights',lighting:evening?'warm recessed ceiling lights, perimeter cove glow, desk and bedside lamps':'daylight with soft warm ceiling lights and lamps',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{pc:'desktop tower with mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'open on raised aluminum holder',displays:'main monitor plus 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'keyboard legends, mouse wheel, soundbar, remote, USB ports and cable tray; wall organizer beside desk with wireless headphones, Bluetooth earbuds case and charging phone holder'},storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Individual anime reference decor cutouts over continuous peach plaster, raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
     function interiorView(){return ['inside','gallery','ceiling','storage'].includes(view);}
     const resize=new ResizeObserver(()=>{const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);const size=renderer.getDrawingBufferSize(new T.Vector2());if(usePostProcessing){renderTarget.setSize(size.x,size.y);postMat.uniforms.resolution.value.copy(size);}camera.aspect=w/h;camera.updateProjectionMatrix();draw();});resize.observe(stage);
     root.querySelector('[data-view-select]').addEventListener('change',e=>{view=e.target.value;phi=view==='top'?.025:.99;theta=view==='top'?0:-.5;distance=34;if(view==='inside'){walkPosition.set(0,5.25,0);insideYaw=0;insidePitch=0;}if(['front','stairs','wash','balcony'].includes(view)){const presets={front:[0,22.8,0],stairs:[-3.9,7.45,0],wash:[0,16,-0.45],balcony:[0,34,0]};const [x,z,yaw]=presets[view];walkPosition.set(x,5.25,z);insideYaw=yaw;insidePitch=e.target.value==='wash'?-.35:e.target.value==='balcony'?-.6:e.target.value==='stairs'?-.55:e.target.value==='front'?-.15:0;view='inside';distance=34;}if(view==='gallery'){walkPosition.set(0,5.25,0);insideYaw=-2.15;insidePitch=-.28;distance=34;}if(view==='ceiling'){insideYaw=2.35;insidePitch=.78;}if(view==='storage'){insideYaw=.15;insidePitch=-.18;}draw();save();});

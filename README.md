@@ -48,3 +48,5 @@ Anime decor is isolated from the reference photo at runtime so the continuous pe
 Phones and narrow screens use direct antialiased lighting and soft contact shadows, avoiding precision-sensitive shadow maps and depth-based postprocessing that can cause diagonal bands on mobile GPUs. Desktop retains its shadow and ambient-occlusion pass.
 
 Movement uses four fixed arrow buttons: tap for a small step, hold to walk, or focus a button and press Enter/Space. Drag the scene to look; WASD and keyboard arrows remain available. Movement stops on release, cancellation, a view change or loss of focus.
+
+A compact wood-and-matte-black wall organizer beside the desk holds wireless over-ear headphones, an open Bluetooth earbuds case and a tilted charging phone cradle.
