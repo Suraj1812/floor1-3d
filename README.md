@@ -2,7 +2,7 @@
 
 An interactive 3D first-floor design by **Suraj Rajput**.
 
-A 12 × 12 ft bedroom and workspace with a dusty blue L-shaped sofa, anime feature wall, neutral frames below the AC, exposed gatar-patiya ceiling, wardrobe, bedside drawers, charging point, detailed PC setup, laptop holder and an adjustable TV-style screen.
+A 12 × 12 ft bedroom and workspace with a dusty blue L-shaped sofa, anime feature wall, neutral frames below the AC, simple off-white PVC ceiling, wardrobe, bedside drawers, charging point, detailed PC setup, laptop holder and an adjustable TV-style screen.
 
 ## Run locally
 
@@ -35,10 +35,12 @@ The site is fully static. Three.js 0.160.1 is vendored under `vendor/`, and the 
 - `src/state.js`: browser-local preference storage.
 - `scripts/build.mjs`: portable static build.
 
-The new areas follow the supplied floor sketch with assumed 12 ft width, 14 ft service/passage zone, 12 ft front room and 4 ft balcony. The front room uses solid plaster masonry, a paneled timber balcony door, one grilled window with cotton curtains, a deep stone sill and a projecting chajja. Local surface maps add plaster grain, vitrified tile variation, woven upholstery and granite stair treads; the empty balcony uses anti-skid tiles. Dedicated daylight and warm fittings light the extension, with a simple neighboring roofscape visible from the front. The existing back-room furnishings and finishes are preserved. An open slab reveals the ground-to-first stair flights, with treads, risers, landing and guardrails; there is no ground-floor or second-floor furnished interior. Exposed gatar-patiya ceilings extend throughout the floor, with clear headroom above the stairwell. The front lounge has an animated three-blade ceiling fan controlled together with the existing fan. Exterior exploration remains at first-floor level.
+The new areas follow the supplied floor sketch with assumed 12 ft width, 14 ft service/passage zone, 12 ft front room and 4 ft balcony. The front room uses solid plaster masonry, a paneled timber balcony door, one grilled window with cotton curtains, a deep stone sill and a projecting chajja. Local surface maps add plaster grain, vitrified tile variation, woven upholstery and granite stair treads; the empty balcony uses anti-skid tiles. Dedicated daylight and warm fittings light the extension, with a simple neighboring roofscape visible from the front. The existing back-room furnishings and finishes are preserved. An open slab reveals the ground-to-first stair flights, with treads, risers, landing and guardrails; there is no ground-floor or second-floor furnished interior. The back room has a flat warm off-white PVC finish beneath its gatar-patiya, with fine panel joints, six warm recessed downlights and a shallow perimeter tray with soft cove lighting. The other spaces retain exposed gatar-patiya ceilings, with clear headroom above the stairwell. The front lounge has an animated three-blade ceiling fan controlled together with the existing fan. Exterior exploration remains at first-floor level.
 
 The room is a design visualization; furniture proportions and ceiling construction are approximate. The TV is an interactive model, not an actual streaming client.
 
 ## Third-party assets
 
 Three.js is distributed under its MIT license, included in `vendor/THREE-LICENSE.txt`. Anime wall artwork was supplied as a design reference and remains the property of its respective rights holders.
+
+Anime decor is isolated from the reference photo at runtime so the continuous peach plaster and scene lighting show between frames, swords and shelves, without a rectangular photo backdrop.

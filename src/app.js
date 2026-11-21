@@ -348,15 +348,13 @@
     const rugMaterial=new T.MeshStandardMaterial({map:rugTex,bumpMap:rugTex,bumpScale:.025,roughness:1});
     box(4.8,.035,5.4,-.7,.07,1.65,rugMaterial,model,.008);
     for(const z of [-1.08,4.38])for(let i=0;i<65;i++)box(.014,.012,.09,-3.03+i*.073,.064,z,linen);
-    // The user's own photograph is placed directly on the left wall.
-    // Crop only the doorway/outer trim; preserve the photographed decor itself.
+    // Keep the reference decor, but let the real plaster wall show between pieces.
     const animeWall=new T.Group();animeWall.name='user-reference-anime-wall';animeWall.position.set(-5.97,5.25,-1.05);animeWall.rotation.y=Math.PI/2;model.add(animeWall);
     const referenceTexture=new T.Texture();referenceTexture.colorSpace=T.SRGBColorSpace;referenceTexture.anisotropy=renderer.capabilities.getMaxAnisotropy();
     referenceTexture.repeat.set(1572/1672,1);referenceTexture.offset.set(28/1672,0);
-    const referenceMat=new T.MeshBasicMaterial({map:referenceTexture,toneMapped:false});
+    const referenceMat=new T.MeshStandardMaterial({map:referenceTexture,transparent:true,alphaTest:.08,roughness:.86});
     const referenceWidth=8.94,referenceHeight=referenceWidth*941/1572;
-    box(referenceWidth,referenceHeight,.025,0,0,.015,peachWall,animeWall);
-    const referenceFace=new T.Mesh(new T.PlaneGeometry(referenceWidth,referenceHeight),referenceMat);referenceFace.position.z=.03;animeWall.add(referenceFace);
+    const referenceFace=new T.Mesh(new T.PlaneGeometry(referenceWidth,referenceHeight),referenceMat);referenceFace.position.z=.03;referenceFace.castShadow=true;animeWall.add(referenceFace);
     const reverseReferenceFace=referenceFace.clone();reverseReferenceFace.position.z=-.015;reverseReferenceFace.rotation.y=Math.PI;animeWall.add(reverseReferenceFace);
     const animeReverseFaces=[reverseReferenceFace];
     // One connected L sectional: three seats along anime wall, one return at AC wall.
@@ -401,7 +399,60 @@
     for(let i=0;i<=80;i++){const a=i/80*Math.PI*2;returnPiping.push([-.18+Math.sign(Math.cos(a))*Math.pow(Math.abs(Math.cos(a)),.22)*.81,1.338,.21+Math.sign(Math.sin(a))*Math.pow(Math.abs(Math.sin(a)),.22)*.925]);}
     tube(returnPiping,.007,sofaPiping,sofaReturn);
     contact(3.1,7.15,-4.65,-2.65,.6);contact(2.55,3.1,-2.31,-4.65,.6);
-    const referenceImage=new Image();referenceImage.onload=()=>{referenceTexture.image=referenceImage;referenceTexture.needsUpdate=true;draw();};referenceImage.onerror=()=>{const e=root.querySelector('.room-error');e.hidden=false;e.textContent='Anime wall image could not load.';};referenceImage.src=root.querySelector('.anime-reference-source').src;
+    function isolateReferenceDecor(image){
+      const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+      const context=canvas.getContext('2d');
+      // Coordinates follow the original 1672 × 941 reference. Each outline excludes
+      // its photographed wall, while retaining the original artwork and furniture.
+      const outlines=[
+        [[338,18],[558,18],[558,322],[338,322]],
+        [[578,18],[785,18],[785,322],[578,322]],
+        [[805,18],[1013,18],[1013,322],[805,322]],
+        [[1033,18],[1230,18],[1230,322],[1033,322]],
+        [[1254,18],[1500,18],[1500,324],[1254,324]],
+        [[82,116],[302,116],[301,503],[80,503]],
+        [[80,522],[300,522],[299,850],[78,850]],
+        [[1375,325],[1602,325],[1604,628],[1377,628]],
+        [[1376,647],[1603,647],[1606,913],[1377,913]],
+        // Sword rack, three blades and handles.
+        [[687,380],[714,380],[714,680],[686,680]],
+        [[1000,380],[1028,380],[1028,680],[1000,680]],
+        [[530,405],[668,416],[680,405],[694,418],[1000,419],[1149,403],[1153,429],[1030,448],[694,447],[678,455],[667,442],[528,430]],
+        [[544,493],[670,505],[683,493],[698,507],[1128,492],[1133,514],[1040,531],[698,535],[684,546],[674,533],[543,519]],
+        [[543,582],[673,590],[682,578],[696,590],[1131,579],[1135,602],[1036,625],[696,624],[683,635],[673,622],[542,608]],
+        // Shelves and close silhouettes around each figurine.
+        [[339,500],[503,500],[503,523],[339,523]],
+        [[419,358],[440,367],[446,391],[454,400],[460,438],[452,446],[451,475],[460,500],[403,500],[409,475],[405,450],[397,443],[402,402],[415,387],[409,371]],
+        [[1190,500],[1353,500],[1353,523],[1190,523]],
+        [[1267,373],[1278,374],[1282,393],[1293,407],[1300,441],[1292,446],[1298,478],[1320,498],[1233,500],[1244,481],[1200,477],[1229,450],[1240,420],[1254,407],[1256,388]],
+        [[326,665],[521,665],[521,688],[326,688]],
+        [[359,591],[373,586],[376,576],[392,581],[403,577],[411,587],[417,594],[415,622],[403,636],[403,657],[411,665],[369,665],[371,645],[363,628]],
+        [[1159,665],[1354,665],[1354,687],[1159,687]],
+        [[1200,585],[1225,579],[1240,588],[1249,608],[1244,630],[1233,638],[1242,662],[1193,665],[1199,640],[1190,626],[1192,602]],
+        [[1260,605],[1275,613],[1287,597],[1301,606],[1329,596],[1334,614],[1340,630],[1334,652],[1322,664],[1272,665],[1263,646]],
+      ];
+      for(const points of outlines){
+        context.save();context.beginPath();points.forEach(([x,y],i)=>i?context.lineTo(x,y):context.moveTo(x,y));context.closePath();context.clip();context.drawImage(image,0,0);context.restore();
+      }
+      // Thin black line-art emblems need their wall-colored interiors transparent.
+      for(const [x,y,w,h] of [[425,591,78,75],[743,693,216,188]]){
+        const source=document.createElement('canvas');source.width=w;source.height=h;
+        const q=source.getContext('2d');q.drawImage(image,x,y,w,h,0,0,w,h);
+        const pixels=q.getImageData(0,0,w,h);
+        for(let i=0;i<pixels.data.length;i+=4){
+          const [r,g,b]=pixels.data.slice(i,i+3);
+          const darkInk=Math.max(0,Math.min(1,(135-Math.max(r,g,b))/45));
+          const mascotColor=x===425?Math.max(
+            Math.max(0,Math.min(1,(Math.min(r-205,g-180,b-155))/15)),
+            r>180&&g>110&&b<90?1:0
+          ):0;
+          pixels.data[i+3]=Math.round(255*Math.max(darkInk,mascotColor));
+        }
+        q.putImageData(pixels,0,0);context.drawImage(source,x,y);
+      }
+      return canvas;
+    }
+    const referenceImage=new Image();referenceImage.onload=()=>{referenceTexture.image=isolateReferenceDecor(referenceImage);referenceTexture.needsUpdate=true;renderer.shadowMap.needsUpdate=true;draw();};referenceImage.onerror=()=>{const e=root.querySelector('.room-error');e.hidden=false;e.textContent='Anime wall image could not load.';};referenceImage.src=root.querySelector('.anime-reference-source').src;
     box(3.15,.95,.75,0,7.12,-5.65,cream,back,.15);
     box(2.7,.12,.025,0,6.88,-5.255,graphite,back,.015);
     box(.5,.025,.015,.85,7.2,-5.26,screen,back);
@@ -411,11 +462,10 @@
     const floorExtension=window.buildFloorExtension(T,model,{box,cylinder,sphere,tube,mat,plaster,oak,cream,metal,glass,tile,chrome,linen,screen});
     const ambient=new T.HemisphereLight('#e8f2ff','#a59a87',.7);scene.add(ambient);
     const sun=new T.DirectionalLight('#fff1d6',2.6);sun.position.set(-3,11,12);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);sun.shadow.camera.left=-10;sun.shadow.camera.right=10;sun.shadow.camera.top=10;sun.shadow.camera.bottom=-10;sun.shadow.normalBias=.018;sun.shadow.bias=-.00015;sun.shadow.radius=3;scene.add(sun);
-    const fill=new T.PointLight('#ffc675',32,18,2);fill.position.set(0,7,-4.5);scene.add(fill);
     const ledFill=new T.PointLight('#ffd395',10,9,2);ledFill.position.set(3.75,2.93,-1.3);scene.add(ledFill);
-    // Gatar-patiya construction: exposed I-section girders with slab infill.
+    // Back-room gatar-patiya structure, concealed beneath a simple PVC finish.
     // Dimensions and orientation are a visual assumption, not a structural plan.
-    const ceiling=new T.Group();ceiling.name='exposed-gatar-patiya-ceiling';model.add(ceiling);
+    const ceiling=new T.Group();ceiling.name='back-room-pvc-ceiling';model.add(ceiling);
     const beamMat=mat('#2c3035',.57),slabMat=mat('#c0bbae',.97);slabMat.bumpMap=plasterMap;slabMat.bumpScale=.03;
     box(12.2,.12,12.2,0,8.94,0,slabMat,ceiling);
     for(let z=-5.25;z<6;z+=1.5)for(let x=-5.25;x<6;x+=1.5)box(1.475,.13,1.475,x,8.81,z,slabMat,ceiling);
@@ -424,7 +474,40 @@
       box(12.1,.48,.075,0,8.375,z,beamMat,ceiling);
       box(12.1,.075,.33,0,8.1,z,beamMat,ceiling);
     }
-    // Exposed ceiling has no strip lights, track lights or downlights.
+    // Flat warm-white PVC below the lowest girder, confined to this 12 × 12 ft room.
+    // Narrow tongue-and-groove joints and matching edge trim keep the finish quiet.
+    const pvc=mat('#f3f0e8',.48),pvcJoint=mat('#ddd9d0',.72);
+    const pvcFinish=new T.Group();pvcFinish.name='back-room-pvc-finish';ceiling.add(pvcFinish);
+    box(12,.035,12,0,8.025,0,pvcJoint,pvcFinish);
+    const panelWidth=12/18;
+    for(let i=0;i<18;i++){
+      box(panelWidth-.006,.045,12,-6+panelWidth*(i+.5),7.985,0,pvc,pvcFinish);
+    }
+    for(const z of [-5.96,5.96])box(12,.065,.08,0,7.955,z,pvc,pvcFinish);
+    for(const x of [-5.96,5.96])box(.08,.065,11.84,x,7.955,0,pvc,pvcFinish);
+    // A shallow perimeter tray and six flush downlights dress only the back room.
+    const ceilingGlow=new T.MeshStandardMaterial({color:'#fff0d6',emissive:'#ffdcaa',emissiveIntensity:2.4,roughness:.38});
+    const lightBezel=mat('#e8e3da',.32),lightRecess=mat('#746d61',.8);
+    const downlightLens=new T.MeshStandardMaterial({color:'#fff5e5',emissive:'#ffe6c4',emissiveIntensity:7,roughness:.7});
+    const ceilingDownlights=[];
+    for(const z of [-5.8,5.8]){
+      box(12,.12,.4,0,7.82,z,pvc,pvcFinish);
+      box(11.2,.035,.045,0,7.88,z>0?5.575:-5.575,ceilingGlow,pvcFinish);
+    }
+    for(const x of [-5.8,5.8]){
+      box(.4,.12,11.2,x,7.82,0,pvc,pvcFinish);
+      box(.045,.035,11.2,x>0?5.575:-5.575,7.88,0,ceilingGlow,pvcFinish);
+    }
+    for(const x of [-3.65,3.65])for(const z of [-3.75,0,3.75]){
+      cylinder(.165,.025,x,7.95,z,lightBezel,pvcFinish);
+      cylinder(.133,.012,x,7.932,z,lightRecess,pvcFinish);
+      const lens=cylinder(.112,.012,x,7.922,z,downlightLens,pvcFinish);lens.castShadow=false;
+      const downlight=new T.SpotLight('#ffe5bf',24,11,Math.PI/3,.7,2);
+      downlight.position.set(x,7.89,z);downlight.target.position.set(x,0,z);
+      pvcFinish.add(downlight,downlight.target);ceilingDownlights.push(downlight);
+    }
+    // The strip stays softly luminous; no detached point sources at side midpoints.
+    // Room illumination comes from the six spotlights beneath their visible lenses.
     // Soft reflection environment provides highlights on wood, glass and metal.
     const envScene=new T.Scene();envScene.background=new T.Color('#bcb7ac');
     const envRoom=new T.Mesh(new T.BoxGeometry(30,20,30),new T.MeshBasicMaterial({color:'#c9c6bc',side:T.BackSide}));envScene.add(envRoom);
@@ -493,7 +576,10 @@
       windowAssembly.visible=true;floorExtension.update(interior,evening,walkPosition.z);
       root.querySelector('.walk-controls').hidden=!inside;
       const zone=(Math.abs(walkPosition.x)>6.3||walkPosition.z>36.3||walkPosition.z< -6.3)?'Outside':walkPosition.z<6.2?'Back room':walkPosition.z<20.2?(walkPosition.x>1.5||walkPosition.z<8.4?'Passage':walkPosition.z<14.2?'Stairs':walkPosition.x> -1.4?'Toilet':'Wash & shower'):walkPosition.z<32.2?'Front room':walkPosition.z<36.3?'Balcony':'Outside';
-      sun.intensity=evening?.08:2.8;ambient.intensity=evening?.38:.8;fill.intensity=evening?8:10;ledFill.intensity=evening?18:6;
+      sun.intensity=evening?.08:2.8;ambient.intensity=evening?.38:.8;ledFill.intensity=evening?18:6;
+      ceilingDownlights.forEach(light=>light.intensity=evening?24:9);
+      downlightLens.emissiveIntensity=evening?8:5;
+      ceilingGlow.emissiveIntensity=evening?1.4:.8;
       bedsideLight.intensity=evening?8:3;shadeMat.emissiveIntensity=evening?.45:.14;
       renderer.toneMappingExposure=evening?1.12:1.02;
       const lightButton=root.querySelector('[data-light]');lightButton.setAttribute('aria-pressed',String(evening));lightButton.setAttribute('aria-label',evening?'Switch to daylight':'Switch to evening lighting');lightButton.title=evening?'Daylight':'Evening lighting';lightButton.querySelector('use').setAttribute('href',evening?'#icon-moon':'#icon-sun');
@@ -506,7 +592,7 @@
       if(nextShadowState!==shadowState){renderer.shadowMap.needsUpdate=true;shadowState=nextShadowState;}
       renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
     }
-    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'exposed gatar-patiya, no ceiling lights',lighting:evening?'warm desk and bedside lamps':'daylight and warm lamps',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{pc:'desktop tower with mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'open on raised aluminum holder',displays:'main monitor plus 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'keyboard legends, mouse wheel, soundbar, remote, USB ports and cable tray'},storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Anime wall photo raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
+    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'back room only: simple warm off-white PVC panels concealing gatar-patiya, slim perimeter tray with warm cove glow and six recessed downlights',lighting:evening?'warm recessed ceiling lights, perimeter cove glow, desk and bedside lamps':'daylight with soft warm ceiling lights and lamps',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{pc:'desktop tower with mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'open on raised aluminum holder',displays:'main monitor plus 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'keyboard legends, mouse wheel, soundbar, remote, USB ports and cable tray'},storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Individual anime reference decor cutouts over continuous peach plaster, raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
     function interiorView(){return ['inside','gallery','ceiling','storage'].includes(view);}
     const resize=new ResizeObserver(()=>{const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);const size=renderer.getDrawingBufferSize(new T.Vector2());renderTarget.setSize(size.x,size.y);postMat.uniforms.resolution.value.copy(size);camera.aspect=w/h;camera.updateProjectionMatrix();draw();});resize.observe(stage);
     root.querySelector('[data-view-select]').addEventListener('change',e=>{view=e.target.value;phi=view==='top'?.025:.99;theta=view==='top'?0:-.5;distance=34;if(view==='inside'){walkPosition.set(0,5.25,0);insideYaw=0;insidePitch=0;}if(['front','stairs','wash','balcony'].includes(view)){const presets={front:[0,22.8,0],stairs:[-3.9,7.45,0],wash:[0,16,-0.45],balcony:[0,34,0]};const [x,z,yaw]=presets[view];walkPosition.set(x,5.25,z);insideYaw=yaw;insidePitch=e.target.value==='wash'?-.35:e.target.value==='balcony'?-.6:e.target.value==='stairs'?-.55:e.target.value==='front'?-.15:0;view='inside';distance=34;}if(view==='gallery'){walkPosition.set(0,5.25,0);insideYaw=-2.15;insidePitch=-.28;distance=34;}if(view==='ceiling'){insideYaw=2.35;insidePitch=.78;}if(view==='storage'){insideYaw=.15;insidePitch=-.18;}draw();save();});
