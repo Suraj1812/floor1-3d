@@ -168,9 +168,6 @@
     dq.fillStyle='rgba(14,24,36,.65)';dq.fillRect(0,407,768,25);for(let i=0;i<7;i++){dq.fillStyle=['#a0c3ce','#b0bdc4','#d5c5aa'][i%3];dq.fillRect(270+i*31,414,14,12);}
     const displayMap=new T.CanvasTexture(displayCanvas);displayMap.colorSpace=T.SRGBColorSpace;screen.color.set('#ffffff');screen.map=displayMap;screen.emissiveMap=displayMap;screen.emissive.set('#ffffff');screen.emissiveIntensity=.35;
     box(.015,1.18,2.12,5.365,3.66,-3.65,screen);
-    box(.62,.045,1.35,4.25,2.62,-3.65,graphite,model,.025);
-    for(let i=0;i<5;i++)for(let j=0;j<11;j++)box(.075,.016,.082,4.02+i*.095,2.65,-4.18+j*.106,cream);
-    sphere(4.23,2.66,-2.57,.16,.055,.24,cream);
     // Raised aluminum laptop stand with an open, angled laptop.
     const laptopStand=new T.Group();laptopStand.name='laptop-on-raised-holder';laptopStand.position.set(4.85,2.59,-1.9);laptopStand.rotation.y=-Math.PI/2;model.add(laptopStand);
     box(.87,.035,.62,0,.025,0,metal,laptopStand,.012);
@@ -225,16 +222,49 @@
     for(const z of [-.05,.12])box(.012,.025,.065,-.684,1.58,z,metal,pc,.003);
     sphere(-.687,1.6,.27,.012,.018,.018,cream,pc);
     tube([[5.58,2.88,-5.25],[5.8,2.75,-5.25],[5.81,1.3,-4.7],[5.94,.5,-4]],.018,graphite);
-    // Keyboard legends, mouse controls, soundbar and a tidy cable tray.
-    const keyCanvas=document.createElement('canvas');keyCanvas.width=350;keyCanvas.height=768;const kq=keyCanvas.getContext('2d');
-    const keyRows=['1234567890-','QWERTYUIOP[','ASDFGHJKL;\'','ZXCVBNM,./ ','CTRL ALT   '];
-    kq.font='20px sans-serif';kq.textAlign='center';kq.textBaseline='middle';kq.fillStyle='#3d4343';
-    for(let row=0;row<5;row++)for(let col=0;col<11;col++){kq.save();kq.translate(42+row*55,76+col*59);kq.rotate(Math.PI/2);kq.fillText(keyRows[row][col]||'',0,0);kq.restore();}
-    const keyTex=new T.CanvasTexture(keyCanvas);keyTex.colorSpace=T.SRGBColorSpace;
-    const legends=new T.Mesh(new T.PlaneGeometry(.6,1.32),new T.MeshBasicMaterial({map:keyTex,transparent:true,depthWrite:false}));legends.rotation.x=-Math.PI/2;legends.position.set(4.25,2.667,-3.65);model.add(legends);
-    box(.014,.025,.11,4.23,2.715,-2.61,graphite,model,.004);
-    line3([[4.23,2.71,-2.8],[4.23,2.715,-2.63]],new T.LineBasicMaterial({color:'#5c6262'}));
-    tube([[4.45,2.65,-3.65],[4.8,2.62,-3.8],[5.7,2.6,-4.4],[5.75,2.4,-5.1]],.009,graphite);
+    // A proper compact keyboard: staggered rows, larger modifiers and spacebar.
+    const keyboard=new T.Group();keyboard.name='detailed-75-percent-keyboard';keyboard.position.set(4.22,2.63,-3.72);keyboard.rotation.y=-Math.PI/2;model.add(keyboard);
+    const keyDark=mat('#50565a',.72),keyLight=mat('#d0d1ca',.65),keyAccent=mat('#64796d',.7);
+    box(1.43,.06,.59,0,0,0,graphite,keyboard,.018);
+    box(1.39,.012,.55,0,.035,0,metal,keyboard,.004);
+    const keyCanvas=document.createElement('canvas');keyCanvas.width=1536;keyCanvas.height=640;const kq=keyCanvas.getContext('2d');
+    kq.textAlign='center';kq.textBaseline='middle';kq.font='18px sans-serif';
+    const keyboardRows=[
+      ['Esc','F1','F2','F3','F4','F5','F6','F7','F8','F9','F10','F11','F12','Del'],
+      ['~','1','2','3','4','5','6','7','8','9','0','-','=', ['Back',1.5]],
+      [['Tab',1.5],'Q','W','E','R','T','Y','U','I','O','P','[',']',['\\',1]],
+      [['Caps',1.75],'A','S','D','F','G','H','J','K','L',';',"'",['Enter',1.75]],
+      [['Shift',2.1],'Z','X','C','V','B','N','M',',','.','/',['Shift',1.4],'↑'],
+      [['Ctrl',1.25],['Win',1.25],['Alt',1.25],['',5.25],['Alt',1.25],'Fn','←','↓','→']
+    ];
+    for(let row=0;row<keyboardRows.length;row++){
+      const specs=keyboardRows[row].map(key=>Array.isArray(key)?key:[key,1]);
+      const total=specs.reduce((sum,key)=>sum+key[1],0),unit=1.34/Math.max(14.5,total);let cursor=-total*unit/2;
+      for(const [label,units] of specs){
+        const width=units*unit-.009,x=cursor+units*unit/2,z=-.225+row*.09;cursor+=units*unit;
+        const modifier=label.length>1||['←','↓','→','↑'].includes(label),accent=label==='Esc'||label==='Enter';
+        box(width,.043,.076,x,.058,z,accent?keyAccent:modifier?keyDark:keyLight,keyboard,.008);
+        const px=(x/1.43+.5)*1536,py=(z/.59+.5)*640;
+        kq.fillStyle=modifier||accent?'#e3e6df':'#343a3d';kq.fillText(label,px,py);
+      }
+    }
+    const keyTex=new T.CanvasTexture(keyCanvas);keyTex.colorSpace=T.SRGBColorSpace;keyTex.anisotropy=renderer.capabilities.getMaxAnisotropy();
+    const legends=new T.Mesh(new T.PlaneGeometry(1.43,.59),new T.MeshStandardMaterial({map:keyTex,transparent:true,depthWrite:false,roughness:.8}));
+    legends.rotation.x=-Math.PI/2;legends.position.y=.081;keyboard.add(legends);
+    for(const x of [-.57,.57])box(.09,.03,.08,x,-.038,-.2,graphite,keyboard,.006);
+    tube([[4.5,2.66,-4.18],[4.7,2.63,-4.25],[5.62,2.61,-4.45],[5.75,2.4,-5.1]],.009,graphite);
+    // Sculpted wireless mouse with a lower shell, separate click plates and wheel.
+    const mouse=new T.Group();mouse.name='sculpted-wireless-mouse';mouse.position.set(4.24,2.621,-2.54);mouse.rotation.y=-Math.PI/2;model.add(mouse);
+    const mouseShell=mat('#c8cac5',.46),mouseRubber=mat('#363d3d',.9);
+    sphere(0,.025,0,.115,.025,.185,mouseRubber,mouse);
+    sphere(0,.065,.014,.116,.07,.184,mouseShell,mouse);
+    for(const x of [-.057,.057]){
+      const click=box(.105,.025,.17,x,.104,-.075,mouseShell,mouse,.012);click.rotation.x=-.12;
+    }
+    const wheel=cylinder(.023,.025,0,.123,-.095,mouseRubber,mouse);wheel.rotation.z=Math.PI/2;
+    line3([[0,.119,-.174],[0,.126,-.055],[0,.12,.002]],new T.LineBasicMaterial({color:'#5a6463'}),mouse);
+    for(const z of [-.025,.045])box(.012,.022,.045,-.113,.067,z,mouseRubber,mouse,.004);
+    sphere(0,.13,.075,.012,.003,.019,metal,mouse);
     box(.2,.14,1.25,4.93,2.69,-3.65,graphite,model,.025);
     box(.012,.1,1.1,4.824,2.69,-3.65,grille,model,.004);
     box(1.5,.12,3.6,5,2.28,-3.55,graphite,model,.015);
@@ -269,43 +299,6 @@
     box(.15,.28,.95,-.48,2.03,0,graphite,chair,.055);
     for(const z of [-.8,.8]){box(.08,.53,.08,.07,1.95,z,metal,chair);box(.8,.12,.14,.07,2.2,z,graphite,chair,.03);}
     for(let i=0;i<5;i++){const a=i*Math.PI*2/5;const leg=box(1.05,.08,.1,Math.cos(a)*.47,.29,Math.sin(a)*.47,metal,chair);leg.rotation.y=-a;sphere(Math.cos(a)*.94,.18,Math.sin(a)*.94,.12,.13,.12,graphite,chair);}
-    // Compact accessories station on the clear wall beside the workstation.
-    const accessories=new T.Group();accessories.name='headphone-earbuds-phone-wall-organizer';
-    accessories.position.set(5.94,4.3,.32);accessories.rotation.y=-Math.PI/2;model.add(accessories);
-    box(1.85,.94,.055,0,0,0,oak,accessories,.025);
-    box(1.85,.055,.44,0,-.44,.2,graphite,accessories,.015);
-    for(const x of [-.83,.83])for(const y of [-.34,.34]){
-      const screw=cylinder(.018,.012,x,y,.034,metal,accessories);screw.rotation.x=Math.PI/2;
-    }
-    // Wireless over-ear headphones hang on a padded hook, clear of the desk.
-    box(.18,.09,.32,-.55,.24,.2,graphite,accessories,.025);
-    box(.18,.12,.055,-.55,.29,.35,graphite,accessories,.016);
-    tube([[-.82,-.04,.29],[-.82,.24,.29],[-.71,.41,.29],[-.55,.45,.29],[-.39,.41,.29],[-.28,.24,.29],[-.28,-.04,.29]],.038,graphite,accessories);
-    tube([[-.79,.18,.295],[-.7,.36,.295],[-.55,.4,.295],[-.4,.36,.295],[-.31,.18,.295]],.025,metal,accessories);
-    for(const x of [-.81,-.29]){
-      box(.135,.28,.18,x,-.105,.3,graphite,accessories,.045);
-      box(.035,.23,.15,x+(x<-.5?.065:-.065),-.105,.3,mat('#45494a',.95),accessories,.012);
-    }
-    box(.035,.06,.015,-.82,-.16,.4,metal,accessories,.004);
-    // Slightly reclined phone, with a front retaining lip and charging lead.
-    const phoneDock=new T.Group();phoneDock.position.set(.08,-.12,.22);phoneDock.rotation.x=-.15;accessories.add(phoneDock);
-    box(.36,.6,.045,0,0,0,metal,phoneDock,.025);
-    box(.31,.55,.025,0,.015,.033,graphite,phoneDock,.019);
-    const phoneScreen=mat('#25424c',.28);phoneScreen.emissive.set('#18333e');phoneScreen.emissiveIntensity=.3;
-    box(.275,.485,.008,0,.018,.05,phoneScreen,phoneDock,.012);
-    box(.08,.016,.009,0,.235,.056,graphite,phoneDock,.004);
-    box(.09,.008,.009,0,-.205,.056,cream,phoneDock,.002);
-    box(.38,.065,.1,.08,-.39,.31,graphite,accessories,.012);
-    tube([[.08,-.38,.24],[.08,-.47,.22],[.25,-.48,.16],[.84,-.48,.08]],.006,graphite,accessories);
-    // Bluetooth earbuds in a small open charging case on the same shelf.
-    box(.35,.14,.23,.59,-.345,.23,cream,accessories,.04);
-    box(.28,.018,.17,.59,-.269,.23,graphite,accessories,.008);
-    const caseLid=box(.35,.035,.23,.59,-.16,.13,cream,accessories,.012);caseLid.rotation.x=-1.05;
-    for(const x of [.51,.67]){
-      sphere(x,-.24,.23,.047,.06,.045,cream,accessories);
-      cylinder(.018,.095,x,-.275,.25,cream,accessories);
-    }
-    box(.025,.008,.008,.59,-.34,.35,led,accessories);
     // Wall fan centered over the gap between desk end (-0.95 ft) and bed foot (-0.6 ft).
     const fanWallZ=(-.95-.6)/2;
     const fanMount=new T.Group();fanMount.name='wall-fan-mount';model.add(fanMount);
@@ -501,11 +494,9 @@
     box(.5,.025,.015,.85,7.2,-5.26,screen,back);
     for(let i=0;i<6;i++)box(2.58,.018,.06,0,6.87+i*.025,-5.23,metal,back);
     box(2.96,.012,.012,0,7.14,-5.265,frame,back);box(.06,.018,.012,1.2,6.98,-5.26,led,back);
-    const lampBase=cylinder(.22,.04,3.75,2.64,-1.3,metal);sphere(3.75,2.93,-1.3,.23,.25,.23,led);
     const floorExtension=window.buildFloorExtension(T,model,{box,cylinder,sphere,tube,mat,plaster,oak,cream,metal,glass,tile,chrome,linen,screen});
     const ambient=new T.HemisphereLight('#e8f2ff','#a59a87',.7);scene.add(ambient);
     const sun=new T.DirectionalLight('#fff1d6',2.6);sun.position.set(-3,11,12);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);sun.shadow.camera.left=-10;sun.shadow.camera.right=10;sun.shadow.camera.top=10;sun.shadow.camera.bottom=-10;sun.shadow.camera.near=.5;sun.shadow.camera.far=40;sun.shadow.normalBias=.018;sun.shadow.bias=-.00015;sun.shadow.radius=3;scene.add(sun);
-    const ledFill=new T.PointLight('#ffd395',10,9,2);ledFill.position.set(3.75,2.93,-1.3);scene.add(ledFill);
     // Back-room gatar-patiya structure, concealed beneath a simple PVC finish.
     // Dimensions and orientation are a visual assumption, not a structural plan.
     const ceiling=new T.Group();ceiling.name='back-room-pvc-ceiling';model.add(ceiling);
@@ -622,7 +613,7 @@
       windowAssembly.visible=true;floorExtension.update(interior,evening,walkPosition.z);
       root.querySelector('.walk-controls').hidden=!inside;
       const zone=(Math.abs(walkPosition.x)>6.3||walkPosition.z>36.3||walkPosition.z< -6.3)?'Outside':walkPosition.z<6.2?'Back room':walkPosition.z<20.2?(walkPosition.x>1.5||walkPosition.z<8.4?'Passage':walkPosition.z<14.2?'Stairs':walkPosition.x> -1.4?'Toilet':'Wash & shower'):walkPosition.z<32.2?'Front room':walkPosition.z<36.3?'Balcony':'Outside';
-      sun.intensity=evening?.08:2.8;ambient.intensity=evening?.38:.8;ledFill.intensity=evening?18:6;
+      sun.intensity=evening?.08:2.8;ambient.intensity=evening?.38:.8;
       ceilingDownlights.forEach(light=>light.intensity=evening?24:9);
       downlightLens.emissiveIntensity=evening?8:5;
       ceilingGlow.emissiveIntensity=evening?1.4:.8;
@@ -640,7 +631,7 @@
         renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
       }else renderer.render(scene,camera);
     }
-    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'back room only: simple warm off-white PVC panels concealing gatar-patiya, slim perimeter tray with warm cove glow and six recessed downlights',lighting:evening?'warm recessed ceiling lights, perimeter cove glow, desk and bedside lamps':'daylight with soft warm ceiling lights and lamps',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{pc:'desktop tower with mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'open on raised aluminum holder',displays:'main monitor plus 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'keyboard legends, mouse wheel, soundbar, remote, USB ports and cable tray; wall organizer beside desk with wireless headphones, Bluetooth earbuds case and charging phone holder'},storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Individual anime reference decor cutouts over continuous peach plaster, raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
+    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'back room only: simple warm off-white PVC panels concealing gatar-patiya, slim perimeter tray with warm cove glow and six recessed downlights',lighting:evening?'warm recessed ceiling lights, perimeter cove glow and bedside lamp':'daylight with soft warm ceiling lights and bedside lamp',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{pc:'desktop tower with mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'open on raised aluminum holder',displays:'main monitor plus 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'staggered 75-percent keyboard with shaped keycaps and legends, sculpted wireless mouse with split buttons and wheel, soundbar, remote, USB ports and cable tray; clear desk without lamp or wall accessories organizer'},storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Individual anime reference decor cutouts over continuous peach plaster, raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
     function interiorView(){return ['inside','gallery','ceiling','storage'].includes(view);}
     const resize=new ResizeObserver(()=>{const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);const size=renderer.getDrawingBufferSize(new T.Vector2());if(usePostProcessing){renderTarget.setSize(size.x,size.y);postMat.uniforms.resolution.value.copy(size);}camera.aspect=w/h;camera.updateProjectionMatrix();draw();});resize.observe(stage);
     root.querySelector('[data-view-select]').addEventListener('change',e=>{view=e.target.value;phi=view==='top'?.025:.99;theta=view==='top'?0:-.5;distance=34;if(view==='inside'){walkPosition.set(0,5.25,0);insideYaw=0;insidePitch=0;}if(['front','stairs','wash','balcony'].includes(view)){const presets={front:[0,22.8,0],stairs:[-3.9,7.45,0],wash:[0,16,-0.45],balcony:[0,34,0]};const [x,z,yaw]=presets[view];walkPosition.set(x,5.25,z);insideYaw=yaw;insidePitch=e.target.value==='wash'?-.35:e.target.value==='balcony'?-.6:e.target.value==='stairs'?-.55:e.target.value==='front'?-.15:0;view='inside';distance=34;}if(view==='gallery'){walkPosition.set(0,5.25,0);insideYaw=-2.15;insidePitch=-.28;distance=34;}if(view==='ceiling'){insideYaw=2.35;insidePitch=.78;}if(view==='storage'){insideYaw=.15;insidePitch=-.18;}draw();save();});

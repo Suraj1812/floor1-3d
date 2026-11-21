@@ -49,4 +49,5 @@ Phones and narrow screens use direct antialiased lighting and soft contact shado
 
 Movement uses four fixed arrow buttons: tap for a small step, hold to walk, or focus a button and press Enter/Space. Drag the scene to look; WASD and keyboard arrows remain available. Movement stops on release, cancellation, a view change or loss of focus.
 
-A compact wood-and-matte-black wall organizer beside the desk holds wireless over-ear headphones, an open Bluetooth earbuds case and a tilted charging phone cradle.
+
+The desk is lamp-free, with a staggered compact keyboard, larger modifier keys, spacebar and printed legends, plus a sculpted wireless mouse with separate buttons, wheel and side controls. The wall accessories organizer has been removed.
