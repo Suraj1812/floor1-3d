@@ -32,15 +32,16 @@
     // Deterministic, physically scaled surface maps, all generated in code.
     let randomSeed=1406;
     function rand(){randomSeed=(randomSeed*16807)%2147483647;return randomSeed/2147483647;}
-    function texture(kind,size=512){
+    function texture(kind,size=mobileRendering?512:1024){
+      const density=(size/512)**2;
       const c=document.createElement('canvas');c.width=c.height=size;const q=c.getContext('2d');
       q.fillStyle=kind==='wood'?'#b48a5a':kind==='cloth'?'#b5b4ab':kind==='stone'?'#d7c9b5':'#ddd8cc';q.fillRect(0,0,size,size);
       if(kind==='wood'){
-        for(let i=0;i<1700;i++){const u=rand()*size;q.strokeStyle=`rgba(${rand()>.5?'63,35,17':'239,199,140'},${.025+rand()*.1})`;q.lineWidth=.3+rand()*1.1;q.beginPath();
+        for(let i=0;i<1700*size/512;i++){const u=rand()*size;q.strokeStyle=`rgba(${rand()>.5?'63,35,17':'239,199,140'},${.025+rand()*.1})`;q.lineWidth=.3+rand()*1.1;q.beginPath();
           for(let y=0;y<=size;y+=8){const x=u+Math.sin(y*.016+u*.04)*3+Math.sin(y*.046+u)*.8;y?q.lineTo(x,y):q.moveTo(x,y);}q.stroke();}
         for(let i=0;i<4;i++){const x=rand()*size,y=rand()*size;for(let j=0;j<10;j++){q.strokeStyle='rgba(61,37,21,.045)';q.beginPath();q.ellipse(x,y,2+j*1.7,8+j*6,.05,0,Math.PI*2);q.stroke();}}
       }else{
-        for(let i=0;i<65000;i++){const v=rand()>.5?'255,255,255':'50,45,39';q.fillStyle=`rgba(${v},${kind==='cloth'?.16:.055})`;q.fillRect(rand()*size,rand()*size,1,kind==='cloth'?3:1);}
+        for(let i=0;i<65000*density;i++){const v=rand()>.5?'255,255,255':'50,45,39';q.fillStyle=`rgba(${v},${kind==='cloth'?.16:.055})`;q.fillRect(rand()*size,rand()*size,1,kind==='cloth'?3:1);}
         if(kind==='cloth')for(let x=0;x<size;x+=3){q.fillStyle='rgba(35,35,30,.06)';q.fillRect(x,0,1,size);q.fillRect(0,x,size,1);}
         if(kind==='stone')for(let i=0;i<25;i++){q.strokeStyle='rgba(146,124,100,.07)';q.beginPath();let y=rand()*size;for(let x=0;x<size;x+=5){y+=Math.sin(x*.02+i)*1.5;q.lineTo(x,y);}q.stroke();}
       }
@@ -119,12 +120,12 @@
     box(4.95,3.9,.025,2.85,4.55,6.09,glass,windowAssembly).castShadow=false;
     box(5.3,.09,.45,2.85,2.49,6.03,cream,windowAssembly);
     for(const x of [2.69,3.02])box(.045,.32,.08,x,4.4,5.97,chrome,windowAssembly,.015);
-    const curtains=new T.Group();model.add(curtains);
+    const curtains=new T.Group();model.add(curtains);const curtainDrapes=[];
     const rod=cylinder(.035,5.8,2.85,7,5.65,metal,curtains);rod.rotation.z=Math.PI/2;
     for(const side of [-1,1]){
       const g=new T.PlaneGeometry(.72,6.5,24,48),pos=g.attributes.position;
       for(let i=0;i<pos.count;i++){const x=pos.getX(i),y=pos.getY(i);pos.setZ(i,Math.sin(x*45)*(.075+.025*Math.cos(y))+.02*Math.sin(y*5+x*8));}g.computeVertexNormals();
-      const curtainMat=linen.clone();curtainMat.side=T.DoubleSide;const drape=new T.Mesh(g,curtainMat);drape.position.set(2.85+side*2.65,3.68,5.63);drape.castShadow=true;drape.receiveShadow=true;curtains.add(drape);
+      const curtainMat=linen.clone();curtainMat.side=T.DoubleSide;const drape=new T.Mesh(g,curtainMat);drape.position.set(2.85+side*2.65,3.68,5.63);drape.userData.side=side;curtainDrapes.push(drape);drape.castShadow=true;drape.receiveShadow=true;curtains.add(drape);
       for(let i=0;i<5;i++){const ring=new T.Mesh(new T.TorusGeometry(.055,.012,6,16),chrome);ring.position.set(2.85+side*2.65-.28+i*.14,6.99,5.65);curtains.add(ring);}
     }
     const door=new T.Group();door.position.set(-5.85,0,6);door.rotation.y=1.1;model.add(door);
@@ -138,14 +139,31 @@
     const wardrobe=new T.Group();wardrobe.name='wardrobe-between-door-and-window';model.add(wardrobe);
     const cupboardFace=mat('#c4bbaa',.74);
     box(2.62,.16,1.62,-1.3,.08,5.05,graphite,wardrobe,.015);
-    box(2.8,7.1,1.8,-1.3,3.65,5.05,oak,wardrobe,.025);
-    for(const x of [-1.9925,-.6075])box(1.355,6.92,.065,x,3.65,4.115,cupboardFace,wardrobe,.015);
-    for(const x of [-1.39,-1.21])box(.035,.85,.065,x,3.55,4.055,graphite,wardrobe,.012);
+    // Hollow carcass with a hanging side and a shelved side, visible when the doors open.
+    const wardrobeLining=mat('#e9e1d2',.8);
+    for(const x of [-2.67,.07])box(.06,7.1,1.8,x,3.65,5.05,oak,wardrobe,.01);
+    box(2.8,7.1,.06,-1.3,3.65,5.92,wardrobeLining,wardrobe);
+    box(2.74,.06,1.74,-1.3,7.17,5.05,oak,wardrobe);box(2.74,.06,1.74,-1.3,.16,5.05,oak,wardrobe);
+    box(.05,7,1.7,-1.3,3.65,5.08,wardrobeLining,wardrobe);
+    for(const y of [1.5,2.95,4.4,5.85])box(1.3,.05,1.68,-.6,y,5.08,wardrobeLining,wardrobe);
+    const rail=cylinder(.022,1.3,-1.99,6.45,5.05,chrome,wardrobe);rail.rotation.z=Math.PI/2;
+    const clothColors=['#3d4a5c','#c9c2b4','#7d3b35','#2a2f33','#8a9a8c','#d8cfc0','#4f5f73'];
+    clothColors.forEach((color,i)=>{const x=-2.55+i*.175;cylinder(.008,.25,x,6.35,5.05,chrome,wardrobe).rotation.z=.6;const shirt=box(.06,2.4+((i*37)%5)*.12,1.15,x,5.15-((i*37)%5)*.06,5.05,mat(color,.92),wardrobe,.02);shirt.rotation.x=(i%2?.015:-.015);});
+    [[1.58,['#d9d2c5','#3c4553']],[3.03,['#7a8b7d','#c8b8a0']],[4.48,['#2f3439','#b9a48d']],[5.93,['#e6e0d6']]].forEach(([y,cols])=>cols.forEach((c,j)=>{for(let k=0;k<3;k++)box(.52,.11,.9,-.92+j*.62,y+.08+k*.115,5.15,mat(c,.95),wardrobe,.03);}));
+    const wardrobeLight=new T.PointLight('#fff1d8',0,3.5,2);wardrobeLight.position.set(-1.3,6.9,4.7);wardrobe.add(wardrobeLight);
+    box(2.6,.02,.05,-1.3,7.12,4.35,new T.MeshStandardMaterial({color:'#fff3dc',emissive:'#ffdca5',emissiveIntensity:0}),wardrobe).userData.wardrobeStrip=true;
+    // Two hinged doors: hinges on the outer edges, handles meeting at the centre.
+    const wardrobeDoors=[[-2.67,-1.9925,-1.39,1],[.07,-.6075,-1.21,-1]].map(([hingeX,x,handleX,dir])=>{
+      const pivot=new T.Group();pivot.position.set(hingeX,0,4.115);pivot.userData.dir=dir;wardrobe.add(pivot);
+      box(1.355,6.92,.065,x-hingeX,3.65,0,cupboardFace,pivot,.015);
+      box(.035,.85,.065,handleX-hingeX,3.55,-.06,graphite,pivot,.012);
+      return pivot;
+    });
     box(2.87,.075,1.85,-1.3,7.235,5.05,oak,wardrobe,.015);
     // Slim full-length mirror on the left wardrobe door, clear of its handle.
-    box(1.16,5.88,.035,-1.9925,3.9,4.061,metal,wardrobe,.01);
-    const wardrobeMirror=createMirror(1.08,5.8,wardrobe);
-    wardrobeMirror.name='wardrobe-full-length-live-mirror';wardrobeMirror.position.set(-1.9925,3.9,4.039);wardrobeMirror.rotation.y=Math.PI;
+    box(1.16,5.88,.035,-1.9925+2.67,3.9,-.054,metal,wardrobeDoors[0],.01);
+    const wardrobeMirror=createMirror(1.08,5.8,wardrobeDoors[0]);
+    wardrobeMirror.name='wardrobe-full-length-live-mirror';wardrobeMirror.position.set(-1.9925+2.67,3.9,-.076);wardrobeMirror.rotation.y=Math.PI;
     contact(3.2,2.2,-1.3,5.05,.5);
     // Bedside storage under the free section of window, to the left of the bed.
     const bedside=new T.Group();bedside.name='window-bedside-drawer-lamp-charging';model.add(bedside);
@@ -175,6 +193,21 @@
     box(.31,.028,.6,1.04,1.725,5.03,graphite,bedside,.013);
     box(.275,.006,.52,1.04,1.743,5.03,mat('#19292e',.25),bedside,.002);
     tube([[.9,2.02,5.8],[.89,1.84,5.64],[.85,1.72,5.37],[1.04,1.745,5.31]],.008,cream,bedside);
+    // Procedural PU-leather grain and a diamond-quilted insert, with a soft satin clearcoat.
+    function chairSurface(kind){
+      const size=mobileRendering?256:512,c=document.createElement('canvas');c.width=c.height=size;const q=c.getContext('2d');
+      q.fillStyle='#808080';q.fillRect(0,0,size,size);
+      if(kind==='grain'){for(let i=0;i<size*size/9;i++){const v=110+rand()*40|0;q.fillStyle=`rgb(${v},${v},${v})`;const r=.6+rand()*1.6;q.beginPath();q.arc(rand()*size,rand()*size,r,0,7);q.fill();}
+        for(let i=0;i<size/2;i++){q.strokeStyle=`rgba(60,60,60,${.05+rand()*.08})`;q.lineWidth=.5;q.beginPath();let x=rand()*size,y=rand()*size;q.moveTo(x,y);for(let k=0;k<6;k++){x+=rand()*14-7;y+=rand()*14-7;q.lineTo(x,y);}q.stroke();}}
+      else{const step=size/8;q.strokeStyle='#3a3a3a';q.lineWidth=size/90;for(let k=-8;k<=16;k++){q.beginPath();q.moveTo(k*step,0);q.lineTo(k*step+size,size);q.stroke();q.beginPath();q.moveTo(k*step,size);q.lineTo(k*step+size,0);q.stroke();}
+        q.fillStyle='rgba(200,200,200,.22)';for(let x=0;x<8;x++)for(let y=0;y<8;y++){q.beginPath();q.arc((x+.5)*step,(y+.5)*step*1,step*.25,0,7);q.fill();}}
+      const t=new T.CanvasTexture(c);t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=renderer.capabilities.getMaxAnisotropy();return t;
+    }
+    const leatherGrain=chairSurface('grain'),quilt=chairSurface('quilt');leatherGrain.repeat.set(3,3);quilt.repeat.set(2,3);
+    const leather=(color,clearcoat=.35)=>new T.MeshPhysicalMaterial({color,roughness:.55,roughnessMap:leatherGrain,bumpMap:leatherGrain,bumpScale:.006,clearcoat,clearcoatRoughness:.45,sheen:.4,sheenColor:new T.Color('#6b6f74'),sheenRoughness:.6});
+    const chairLeather=leather('#1c2124'),chairAccent=leather('#7a2a33',.4),chairStitch=mat('#b88c8f',.9);
+    const chairInsert=new T.MeshPhysicalMaterial({color:'#2b3236',roughness:.85,bumpMap:quilt,bumpScale:.02,sheen:.6,sheenColor:new T.Color('#55606a'),sheenRoughness:.8});
+    const aluminium=new T.MeshPhysicalMaterial({color:'#c9ccce',metalness:1,roughness:.22,clearcoat:.4,clearcoatRoughness:.15});
     // Work desk: 5 by 2.5 ft, right wall at the back.
     box(2.5,.17,5,4.7,2.5,-3.45,oak,model,.05);
     for(const z of [-5.65,-1.25])for(const x of [3.65,5.75])box(.12,2.45,.12,x,1.22,z,oakEdge);
@@ -199,6 +232,11 @@
     const monitorShell=new T.Mesh(bendMonitorGeometry(new T.BoxGeometry(2.3,1.33,.065,64,1,1)),graphite);
     monitorShell.castShadow=true;monitorShell.receiveShadow=true;curvedPanel.add(monitorShell);
     box(.07,.48,.62,.065,-.12,0,graphite,monitorPivot,.012);
+    // Asymmetric monitor light bar clipped on top, lighting the keyboard area.
+    const lightBarGlow=new T.MeshStandardMaterial({color:'#fff6e8',emissive:'#ffe9c8',emissiveIntensity:0});
+    const lightBar=cylinder(.03,1.1,0,.71,.02,graphite,curvedPanel);lightBar.rotation.z=Math.PI/2;
+    box(1.04,.012,.04,0,.685,-.01,lightBarGlow,curvedPanel);box(.12,.09,.08,0,.67,.06,graphite,curvedPanel,.02);
+    const deskLight=new T.SpotLight('#ffe8cc',0,6,.85,.6,2);deskLight.position.set(5.25,4.35,-4.05);deskLight.target.position.set(4.25,2.6,-3.6);model.add(deskLight,deskLight.target);
     const screen=new T.MeshStandardMaterial({color:'#285c78',emissive:'#173f63',emissiveIntensity:.5,roughness:.3});
     const displayCanvas=document.createElement('canvas');displayCanvas.width=768;displayCanvas.height=432;const dq=displayCanvas.getContext('2d');
     // Calm macOS-inspired desktop, with a proper menu bar and dock rather than blocks.
@@ -310,8 +348,23 @@
     box(.03,.32,.58,5.98,.52,-4,cream);for(const z of [-4.16,-3.86])for(const y of [.47,.56])box(.015,.025,.018,5.955,y,z,graphite);
     box(.035,.35,.35,-2.5,4,5.98,cream,front,.02);box(.015,.19,.12,-2.5,4,5.95,frame,front,.01);
     cylinder(.1,.34,5.55,2.77,-2.3,graphite);for(let i=0;i<4;i++){const pencil=cylinder(.009,.45,5.55+(i%2)*.045,3.03,-2.3+Math.floor(i/2)*.045,oak);pencil.rotation.z=(i-2)*.09;}
+    // Desk setup: stitched desk mat, studio headphones on a stand, bookshelf speakers and a monitor light bar.
+    const headStand=new T.Group();headStand.position.set(3.95,2.585,-5.5);model.add(headStand);
+    cylinder(.2,.03,0,.015,0,aluminium,headStand);cylinder(.025,1.0,0,.52,0,aluminium,headStand);
+    const hook=box(.3,.05,.12,.06,1.02,0,graphite,headStand,.02);
+    const band=new T.Mesh(new T.TorusGeometry(.26,.03,10,40,Math.PI),mat('#22272a',.6));band.rotation.y=Math.PI/2;band.position.set(.06,.8,0);headStand.add(band);
+    const bandPad=new T.Mesh(new T.TorusGeometry(.245,.022,8,30,Math.PI*.6),leather('#2b3134'));bandPad.rotation.set(0,Math.PI/2,Math.PI*.2);bandPad.position.set(.06,.8,0);headStand.add(bandPad);
+    for(const z of [-.27,.27]){const cup=cylinder(.15,.09,.06,.68,z,mat('#1b1f22',.45),headStand);cup.rotation.x=Math.PI/2;const pad=new T.Mesh(new T.TorusGeometry(.11,.045,10,30),leather('#26292c'));pad.position.set(.06,.68,z-Math.sign(z)*.06);headStand.add(pad);const ring=new T.Mesh(new T.TorusGeometry(.15,.008,6,30),aluminium);ring.position.set(.06,.68,z+Math.sign(z)*.045);headStand.add(ring);}
+    for(const z of [-5.68,-2.45]){
+      const spk=new T.Group();spk.position.set(5.55,2.585,z);model.add(spk);
+      box(.42,.62,.36,0,.31,0,oakEdge,spk,.03);box(.012,.6,.34,-.215,.31,0,mat('#202426',.85),spk,.02);
+      const woofer=cylinder(.11,.02,-.228,.2,0,mat('#2a2d30',.6),spk);woofer.rotation.z=Math.PI/2;
+      const cone=sphere(-.23,.2,0,.01,.075,.075,mat('#3a3e41',.5),spk);
+      const tweet=cylinder(.045,.02,-.228,.47,0,aluminium,spk);tweet.rotation.z=Math.PI/2;
+      for(const zz of [-.1,.1])box(.05,.02,.05,0,.01,zz,graphite,spk);
+    }
     // Detailed desktop PC tower at the far end of the desk; no RGB lighting.
-    const pc=new T.Group();pc.name='desktop-cpu-tower';pc.position.set(4.92,.12,-5.25);model.add(pc);
+    const pcFans=[];const pc=new T.Group();pc.name='desktop-cpu-tower';pc.position.set(4.92,.12,-5.25);model.add(pc);
     // Low riser keeps the tower off the floor at the desk's far end.
     box(1.42,.08,.87,4.92,.065,-5.25,metal,model,.012);
     box(1.3,1.66,.75,0,.87,0,graphite,pc,.035);
@@ -321,17 +374,39 @@
     for(const y of [.48,1.14]){
       const fanHub=cylinder(.22,.025,-.688,y,0,metal,pc);fanHub.rotation.z=Math.PI/2;
       const guard=new T.Mesh(new T.TorusGeometry(.232,.018,8,40),graphite);guard.rotation.y=Math.PI/2;guard.position.set(-.708,y,0);pc.add(guard);
-      for(let j=0;j<7;j++){const a=j*Math.PI*2/7;const blade=sphere(-.707,y+Math.cos(a)*.13,Math.sin(a)*.13,.012,.12,.04,graphite,pc);blade.rotation.x=a+.4;}
+      const rotor=new T.Group();rotor.position.set(-.707,y,0);pc.add(rotor);pcFans.push({rotor,axis:'x'});
+      for(let j=0;j<9;j++){const a=j*Math.PI*2/9;const blade=sphere(0,Math.cos(a)*.13,Math.sin(a)*.13,.01,.12,.045,graphite,rotor);blade.rotation.x=a+.45;}
       sphere(-.73,y,0,.015,.055,.055,metal,pc);
     }
     // Side window and visible motherboard, GPU, RAM and cooling hardware.
     box(1.12,1.43,.018,0,.9,.366,metal,pc,.006);
     const motherboard=mat('#26332d');box(.92,1.09,.025,.04,.98,.394,motherboard,pc);
-    box(.4,.09,.18,-.1,.65,.42,graphite,pc,.006);
-    for(const x of [-.2,.12]){const f=cylinder(.085,.018,x,.65,.523,metal,pc);f.rotation.x=Math.PI/2;}
-    box(.28,.3,.08,.08,1.2,.44,metal,pc,.008);
-    for(let j=0;j<9;j++)box(.26,.012,.1,.08,1.07+j*.031,.45,graphite,pc);
-    for(const x of [.32,.39])box(.035,.44,.05,x,1.16,.42,graphite,pc);
+    // Triple-fan graphics card with backplate, light bar and power leads.
+    const gpuShroud=new T.MeshPhysicalMaterial({color:'#2d3236',metalness:.6,roughness:.35,clearcoat:.3});
+    box(.84,.13,.2,-.03,.63,.47,gpuShroud,pc,.02);
+    box(.84,.012,.2,-.03,.703,.47,metal,pc,.004);
+    for(let k=0;k<7;k++)box(.8,.006,.006,-.03,.575-k*.002,.375+k*.025,metal,pc);
+    for(const x of [-.33,-.03,.27]){
+      const ring=new T.Mesh(new T.TorusGeometry(.105,.012,8,32),graphite);ring.rotation.x=Math.PI/2;ring.position.set(x,.562,.47);pc.add(ring);
+      const rotor=new T.Group();rotor.position.set(x,.56,.47);pc.add(rotor);pcFans.push({rotor,axis:'y'});
+      for(let j=0;j<11;j++){const a=j*Math.PI*2/11;const blade=sphere(Math.cos(a)*.055,0,Math.sin(a)*.055,.05,.006,.018,graphite,rotor);blade.rotation.y=-a;blade.rotation.z=.4;}
+      cylinder(.03,.012,0,-.004,0,metal,rotor);
+    }
+    const pcGlow=new T.MeshStandardMaterial({color:'#dfe9ef',emissive:'#cfe6ff',emissiveIntensity:1.2});
+    box(.5,.012,.012,-.03,.66,.572,pcGlow,pc);
+    for(const z of [.43,.5])tube([[.36,.69,z],[.42,.8,z],[.44,.95,z+.02]],.012,graphite,pc);
+    // Four RAM modules with light bars, an M.2 heatsink and a sleeved 24-pin cable.
+    for(const x of [.27,.31,.35,.39]){box(.028,.42,.06,x,1.16,.43,graphite,pc,.004);box(.03,.03,.062,x,1.385,.43,pcGlow,pc);}
+    box(.36,.025,.09,-.12,.86,.42,metal,pc,.006);
+    for(let k=0;k<3;k++)tube([[.5,.95+k*.025,.42],[.46,1.05+k*.025,.46],[.42,1.1+k*.02,.44]],.011,mat(k%2?'#1c1f21':'#2c3236',.8),pc);
+    // Tower air cooler: fin stack, heat pipes and a front-mounted fan.
+    for(let j=0;j<24;j++)box(.3,.006,.16,.08,1.05+j*.013,.47,metal,pc);
+    for(const x of [-.02,.04,.1,.16])tube([[x,.98,.43],[x,1.02,.47],[x,1.38,.47]],.009,mat('#b87333',.35),pc);
+    box(.05,.32,.2,-.1,1.2,.47,graphite,pc,.02);
+    {const rotor=new T.Group();rotor.position.set(-.13,1.2,.47);pc.add(rotor);pcFans.push({rotor,axis:'x'});
+     for(let j=0;j<9;j++){const a=j*Math.PI*2/9;const blade=sphere(0,Math.cos(a)*.08,Math.sin(a)*.08,.006,.07,.028,mat('#3a4146',.6),rotor);blade.rotation.x=a+.45;}}
+    box(.02,.18,.18,.0,1.03,.42,metal,pc,.01);
+    const pcLight=new T.PointLight('#dceaff',0,1.6,2);pcLight.position.set(0,1.45,.48);pc.add(pcLight);
     box(.85,.2,.15,0,.29,.4,graphite,pc,.008);
     const pcGlass=new T.MeshPhysicalMaterial({color:'#8caaa9',transparent:true,opacity:.22,roughness:.12,metalness:.05,side:T.DoubleSide,depthWrite:false});
     box(1.14,1.44,.012,0,.9,.55,pcGlass,pc).castShadow=false;
@@ -445,8 +520,15 @@
     tube([[5.82,3.22,-.87],[5.84,2.75,-1],[5.83,2.36,-1.35],[5.8,2.34,-3.7]],.014,graphite);
     // Full racing-style gaming chair, angled gently toward the workstation.
     const chair=new T.Group();chair.name='high-back-black-red-gaming-chair';chair.position.set(2.35,0,-3.55);chair.rotation.y=.12;model.add(chair);
-    const chairLeather=mat('#202528',.64),chairInsert=mat('#30373b',.91),chairAccent=mat('#7b3038',.78),chairStitch=mat('#9b7778',.9);
-    cylinder(.105,.95,0,.87,0,chrome,chair);cylinder(.15,.36,0,.48,0,graphite,chair);
+    
+    // Class-4 gas lift: chrome piston, telescoping dust shroud and tilt mechanism.
+    cylinder(.06,.5,0,1.15,0,chrome,chair);
+    for(let i=0;i<4;i++)cylinder(.1+i*.012,.13,0,.86-i*.12,0,graphite,chair);
+    cylinder(.15,.12,0,.42,0,aluminium,chair);
+    box(.9,.12,.7,0,1.34,0,graphite,chair,.03);
+    const tensionKnob=cylinder(.09,.16,.5,1.27,0,graphite,chair);tensionKnob.rotation.z=Math.PI/2;
+    for(let i=0;i<10;i++){const r=box(.16,.012,.02,.5,1.27+Math.cos(i*.63)*.088,Math.sin(i*.63)*.088,metal,chair);r.rotation.x=i*.63;}
+    tube([[-.2,1.32,-.35],[-.1,1.3,-.62],[.15,1.3,-.72]],.016,metal,chair);box(.16,.045,.08,.2,1.3,-.73,graphite,chair,.01);
     box(1.5,.16,1.44,0,1.44,0,graphite,chair,.04);
     box(1.45,.24,1.48,0,1.64,0,chairLeather,chair,.06);
     box(1.21,.06,.99,.04,1.779,0,chairInsert,chair,.018);
@@ -470,6 +552,19 @@
     box(.23,.42,.77,.2,2.17,0,chairLeather,gamingBack,.055);
     box(.025,.25,.58,.326,2.16,0,chairAccent,gamingBack,.008);
     box(.27,.42,.97,.28,.43,0,chairLeather,gamingBack,.055);
+    // Removable headrest and lumbar pillows with elastic straps.
+    const headPillow=sphere(.42,2.02,0,.12,.17,.36,chairLeather,gamingBack);
+    sphere(.5,2.02,0,.035,.12,.3,chairAccent,gamingBack);
+    for(const z of [-.24,.24])box(.03,.36,.05,.38,2.2,z,graphite,gamingBack,.01);
+    const lumbar=sphere(.45,.72,0,.13,.21,.4,chairLeather,gamingBack);
+    sphere(.54,.72,0,.03,.15,.32,chairAccent,gamingBack);
+    // Embroidered abstract emblem on the headrest.
+    const emblemCanvas=document.createElement('canvas');emblemCanvas.width=256;emblemCanvas.height=128;
+    {const q=emblemCanvas.getContext('2d');q.translate(128,64);q.fillStyle='#b83a46';q.strokeStyle='#e8d6d6';q.lineWidth=3;
+      for(const s of [-1,1]){q.beginPath();q.moveTo(0,-8);q.lineTo(s*70,-34);q.lineTo(s*96,-30);q.lineTo(s*46,6);q.lineTo(s*8,18);q.closePath();q.fill();q.stroke();}
+      q.beginPath();q.moveTo(0,-26);q.lineTo(14,6);q.lineTo(0,36);q.lineTo(-14,6);q.closePath();q.fillStyle='#e8d6d6';q.fill();}
+    const emblemMap=new T.CanvasTexture(emblemCanvas);emblemMap.colorSpace=T.SRGBColorSpace;
+    const emblem=new T.Mesh(new T.PlaneGeometry(.5,.25),new T.MeshStandardMaterial({map:emblemMap,transparent:true,roughness:.8,bumpMap:emblemMap,bumpScale:.004}));emblem.rotation.y=Math.PI/2;emblem.position.set(.317,2.3,0);gamingBack.add(emblem);
     for(const z of [-.38,.38])box(.012,.31,.035,.422,.43,z,chairAccent,gamingBack,.003);
     // Adjustable arm posts, padded tops, recline hinges and height lever.
     for(const z of [-.86,.86]){
@@ -482,10 +577,13 @@
     tube([[.04,1.41,.45],[.28,1.32,.74],[.46,1.32,.8]],.018,metal,chair);
     box(.17,.045,.08,.46,1.32,.8,graphite,chair,.01);
     for(let i=0;i<5;i++){
-      const a=i*Math.PI*2/5,leg=box(1.02,.095,.13,Math.cos(a)*.47,.27,Math.sin(a)*.47,graphite,chair,.018);leg.rotation.y=-a;
+      const a=i*Math.PI*2/5,leg=box(1.02,.1,.14,Math.cos(a)*.47,.27,Math.sin(a)*.47,aluminium,chair,.03);leg.rotation.y=-a;leg.rotation.z=-.05;
+      const rib=box(.85,.05,.05,Math.cos(a)*.45,.33,Math.sin(a)*.45,aluminium,chair,.015);rib.rotation.y=-a;
+      const cap=box(.06,.11,.15,Math.cos(a)*.97,.24,Math.sin(a)*.97,graphite,chair,.02);cap.rotation.y=-a;
       const caster=new T.Group();caster.position.set(Math.cos(a)*.94,.14,Math.sin(a)*.94);caster.rotation.y=-a;chair.add(caster);
       box(.08,.12,.12,0,.07,0,metal,caster,.012);
-      for(const z of [-.07,.07]){const wheel=cylinder(.1,.055,0,0,z,graphite,caster);wheel.rotation.x=Math.PI/2;}
+      for(const z of [-.07,.07]){const wheel=cylinder(.1,.055,0,0,z,graphite,caster);wheel.rotation.x=Math.PI/2;const hub=cylinder(.045,.058,0,0,z,chrome,caster);hub.rotation.x=Math.PI/2;}
+      box(.05,.15,.17,-.04,.09,0,graphite,caster,.02);
     }
     // Wall fan centered over the gap between desk end (-0.95 ft) and bed foot (-0.6 ft).
     const fanWallZ=(-.95-.6)/2;
@@ -708,11 +806,33 @@
       return canvas;
     }
     const referenceImage=new Image();referenceImage.onload=()=>{referenceTexture.image=isolateReferenceDecor(referenceImage);referenceTexture.needsUpdate=true;renderer.shadowMap.needsUpdate=true;draw();};referenceImage.onerror=()=>{const e=root.querySelector('.room-error');e.hidden=false;e.textContent='Anime wall image could not load.';};referenceImage.src=root.querySelector('.anime-reference-source').src;
-    box(3.15,.95,.75,0,7.12,-5.65,cream,back,.15);
-    box(2.7,.12,.025,0,6.88,-5.255,graphite,back,.015);
-    box(.5,.025,.015,.85,7.2,-5.26,screen,back);
-    for(let i=0;i<6;i++)box(2.58,.018,.06,0,6.87+i*.025,-5.23,metal,back);
-    box(2.96,.012,.012,0,7.14,-5.265,frame,back);box(.06,.018,.012,1.2,6.98,-5.26,led,back);
+    // Split-AC indoor unit: curved glossy shell, top intake grille, front seam, outlet with vane and swinging louvers.
+    const acPlastic=new T.MeshPhysicalMaterial({color:'#f3f2ee',roughness:.32,clearcoat:.7,clearcoatRoughness:.18});
+    const acProfile=new T.Shape();
+    acProfile.moveTo(0,0);acProfile.lineTo(0,.98);acProfile.lineTo(.4,.98);acProfile.quadraticCurveTo(.72,.97,.75,.7);
+    acProfile.lineTo(.77,.36);acProfile.quadraticCurveTo(.77,.2,.64,.17);acProfile.lineTo(.6,.17);acProfile.lineTo(.6,.06);acProfile.quadraticCurveTo(.5,0,.36,0);acProfile.closePath();
+    const acBody=new T.Mesh(new T.ExtrudeGeometry(acProfile,{depth:3.08,bevelEnabled:true,bevelThickness:.03,bevelSize:.03,bevelSegments:4,curveSegments:16}),acPlastic);
+    acBody.rotation.y=-Math.PI/2;acBody.position.set(1.54,6.62,-6.0);acBody.castShadow=true;acBody.receiveShadow=true;back.add(acBody);
+    for(const x of [-1.57,1.57])box(.04,.9,.66,x,7.1,-5.66,mat('#dcdad4',.4),back,.03);
+    const acSlot=mat('#3b4144',.6);
+    for(let i=0;i<34;i++)box(.035,.012,.3,-1.32+i*.08,7.615,-5.75,acSlot,back,.004);
+    box(3.02,.008,.01,0,7.36,-5.205,mat('#d6d4cf',.4),back);
+    const acOutlet=mat('#1f2427',.7);box(2.86,.1,.12,0,6.73,-5.43,acOutlet,back,.02);
+    const acLouvers=[];
+    for(let i=0;i<16;i++){const l=new T.Group();l.position.set(-1.3+i*.173,6.73,-5.43);back.add(l);box(.012,.085,.1,0,0,0,mat('#c9c8c3',.5),l);acLouvers.push(l);}
+    const acLedMat=new T.MeshStandardMaterial({color:'#2a3a33',emissive:'#4dff9a',emissiveIntensity:0});
+    box(.5,.14,.01,.95,7.0,-5.198,mat('#14191b',.25),back,.02);
+    const acIr=sphere(1.32,7.0,-5.196,.03,.03,.015,mat('#26292b',.2),back);
+    box(.03,.03,.012,1.25,6.93,-5.198,acLedMat,back);
+    // Insulated refrigerant pipes and drain leave through the wall behind the right end.
+    tube([[1.5,6.75,-5.95],[1.75,6.7,-5.98],[1.95,6.68,-6.0]],.045,mat('#e8e6e0',.85),back);
+    tube([[1.45,6.66,-5.9],[1.7,6.6,-5.98],[1.9,6.55,-6.0]],.018,mat('#d8d8d2',.6),back);
+    // Motorised vane under the outlet and a small temperature readout.
+    const acVane=new T.Group();acVane.position.set(0,6.68,-5.38);back.add(acVane);box(2.84,.03,.2,0,0,.1,acPlastic,acVane,.012);
+    const acDisplayCanvas=document.createElement('canvas');acDisplayCanvas.width=128;acDisplayCanvas.height=48;
+    {const q=acDisplayCanvas.getContext('2d');q.fillStyle='#0b1210';q.fillRect(0,0,128,48);q.fillStyle='#8fe3ff';q.font='bold 34px sans-serif';q.textAlign='center';q.fillText('24°',64,37);}
+    const acDisplayMap=new T.CanvasTexture(acDisplayCanvas);acDisplayMap.colorSpace=T.SRGBColorSpace;
+    const acDisplay=new T.Mesh(new T.PlaneGeometry(.26,.1),new T.MeshBasicMaterial({map:acDisplayMap,transparent:true,opacity:0,toneMapped:false}));acDisplay.position.set(.95,7.0,-5.19);back.add(acDisplay);
     const floorExtension=window.buildFloorExtension(T,model,{box,cylinder,sphere,tube,mat,plaster,oak,cream,metal,glass,tile,chrome,linen,screen,createMirror});
     const ambient=new T.HemisphereLight('#e8f2ff','#a59a87',.7);scene.add(ambient);
     const sun=new T.DirectionalLight('#fff1d6',2.6);sun.position.set(-3,11,12);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);sun.shadow.camera.left=-10;sun.shadow.camera.right=10;sun.shadow.camera.top=10;sun.shadow.camera.bottom=-10;sun.shadow.camera.near=.5;sun.shadow.camera.far=40;sun.shadow.normalBias=.018;sun.shadow.bias=-.00015;sun.shadow.radius=3;scene.add(sun);
@@ -759,7 +879,7 @@
     const envScene=new T.Scene();envScene.background=new T.Color('#bcb7ac');
     const envRoom=new T.Mesh(new T.BoxGeometry(30,20,30),new T.MeshBasicMaterial({color:'#c9c6bc',side:T.BackSide}));envScene.add(envRoom);
     for(const p of [[-8,6,4],[6,7,-5],[0,10,0]]){const panel=new T.Mesh(new T.PlaneGeometry(9,6),new T.MeshBasicMaterial({color:'#fff4df',side:T.DoubleSide}));panel.position.set(...p);panel.lookAt(0,0,0);envScene.add(panel);}
-    const pmrem=new T.PMREMGenerator(renderer);const envTarget=pmrem.fromScene(envScene,.05);scene.environment=envTarget.texture;pmrem.dispose();
+    const pmrem=new T.PMREMGenerator(renderer);const envTarget=pmrem.fromScene(envScene,.05);scene.environment=envTarget.texture;
     const shadow=new T.Mesh(new T.PlaneGeometry(12.6,12.6),new T.ShadowMaterial({opacity:.12}));shadow.rotation.x=-Math.PI/2;shadow.position.y=-.41;shadow.receiveShadow=true;scene.add(shadow);
     // Depth-aware ambient occlusion and a restrained HDR glow, rendered locally.
     let renderTarget,postScene,postCamera,postMat;
@@ -772,6 +892,7 @@
       vertexShader:'varying vec2 uvOut;void main(){uvOut=uv;gl_Position=vec4(position.xy,0.,1.);}',
       fragmentShader:`
         uniform sampler2D image;uniform sampler2D depth;uniform mat4 inverseProjection;uniform vec2 resolution;varying vec2 uvOut;
+        float grainHash(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
         vec3 viewPosition(vec2 uv,float d){vec4 p=inverseProjection*vec4(uv*2.-1.,d*2.-1.,1.);return p.xyz/p.w;}
         void main(){
           vec4 base=texture2D(image,uvOut);float d=texture2D(depth,uvOut).r;float ao=0.;
@@ -783,14 +904,42 @@
               if(uv.x>0.&&uv.x<1.&&uv.y>0.&&uv.y<1.){float sd=texture2D(depth,uv).r;if(sd<.99999){vec3 delta=viewPosition(uv,sd)-p;float len=length(delta);ao+=max(0.,dot(n,delta/max(len,.001))-.12)*(1.-smoothstep(0.,radius,len));}}
             }
           }
-          vec3 color=base.rgb*(1.-min(.65,ao*.17));
+          vec2 px=1./resolution;
+          vec3 around=texture2D(image,uvOut+vec2(px.x,0.)).rgb+texture2D(image,uvOut-vec2(px.x,0.)).rgb+texture2D(image,uvOut+vec2(0.,px.y)).rgb+texture2D(image,uvOut-vec2(0.,px.y)).rgb;
+          vec3 sharp=max(base.rgb+(base.rgb*4.-around)*.16,vec3(0.));
+          vec3 color=sharp*(1.-min(.65,ao*.17));
+          float luma=dot(color,vec3(.2126,.7152,.0722));color=mix(vec3(luma),color,1.06);
+          float edge=length((uvOut-.5)*vec2(1.,.8));color*=mix(.8,1.,smoothstep(.78,.28,edge));
           vec3 glow=vec3(0.);for(int i=0;i<8;i++){float a=float(i)*.785398;vec3 c=texture2D(image,uvOut+vec2(cos(a),sin(a))*3./resolution).rgb;glow+=max(c-vec3(1.5),vec3(0.));}
           gl_FragColor=vec4(color+glow*.012,base.a);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
+          gl_FragColor.rgb+=(grainHash(uvOut*resolution)-.5)*.014;
         }`,depthTest:false,depthWrite:false,transparent:true
     });
     postScene.add(new T.Mesh(new T.PlaneGeometry(2,2),postMat));
+    }
+    // Surface realism: micro-roughness from the same procedural maps, a polished floor and live room reflections.
+    oak.roughnessMap=woodMap;oak.roughness=.62;plaster.roughnessMap=plasterMap;plaster.roughness=1;
+    const polishedTile=new T.MeshPhysicalMaterial({color:tile.color,map:tile.map,bumpMap:tile.bumpMap,bumpScale:tile.bumpScale,roughness:.38,roughnessMap:tile.map,clearcoat:.55,clearcoatRoughness:.1,envMapIntensity:1});
+    const glossyMaterials=new Set();
+    scene.traverse(object=>{
+      if(!object.isMesh||!object.material||Array.isArray(object.material))return;
+      if(object.material===tile)object.material=polishedTile;
+      const m=object.material;
+      if(m.isMeshStandardMaterial&&(m.metalness>.5||m.roughness<.3||m.isMeshPhysicalMaterial))glossyMaterials.add(m);
+    });
+    let roomEnvTarget=null;
+    function captureRoomReflections(night){
+      // Render the finished room into a cube map so chrome, screens, glass and the floor reflect the real space.
+      try{
+        const previousBackground=scene.background,previousY=model.position.y;
+        reflectionPass=true;scene.background=new T.Color(night?'#1c2233':'#dfe7ef');model.position.y=-5.25;scene.updateMatrixWorld(true);
+        const target=pmrem.fromScene(scene,.02,.1,120);
+        model.position.y=previousY;scene.background=previousBackground;scene.updateMatrixWorld(true);reflectionPass=false;
+        for(const m of glossyMaterials){m.envMap=target.texture;m.needsUpdate=true;}
+        roomEnvTarget?.dispose();roomEnvTarget=target;
+      }catch(error){reflectionPass=false;console.warn('Room reflections unavailable:',error);}
     }
     const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
     let fanRunning=!reducedMotion.matches,fanTime=0;
@@ -798,13 +947,13 @@
     function restoreCircuits(saved){for(const key of Object.keys(circuits))if(typeof saved?.circuits?.[key]==='boolean')circuits[key]=saved.circuits[key];}
     restoreCircuits(roomState?.widgetState?.privateContent);
     const switchedOffScreen=mat('#0c1114',.4),tvOnMaterial=tvScreen.material;
-    function toggleCircuit(key){if(key==='fan')fanRunning=!fanRunning;else circuits[key]=!circuits[key];draw();save();}
+    function toggleCircuit(key){if(key==='fan')fanRunning=!fanRunning;else circuits[key]=!circuits[key];sound?.click(key==='fan'?fanRunning:circuits[key]);draw();save();}
     let tvTilt=Number.isFinite(roomState?.widgetState?.privateContent?.tvTilt)?Math.max(0,Math.min(25,roomState.widgetState.privateContent.tvTilt)):12;
     let sofaColor=Object.hasOwn(sofaPalettes,roomState?.widgetState?.privateContent?.sofaColor)?roomState.widgetState.privateContent.sofaColor:'dustyBlue';
     let theta=-.5,phi=.99,distance=25.5,view='inside',evening=true,insideYaw=2.35,insidePitch=.03;
-    function restore(state){const s=state?.privateContent;if(s?.version===2&&Number.isFinite(s.theta)&&Number.isFinite(s.phi)&&Number.isFinite(s.distance)){theta=s.theta;phi=Math.max(.025,Math.min(1.42,s.phi));distance=Math.max(15,Math.min(34,s.distance));view=['room','top','inside','gallery','ceiling','storage'].includes(s.view)?s.view:'inside';evening=!!s.evening;insideYaw=Number.isFinite(s.insideYaw)?s.insideYaw:2.35;insidePitch=Number.isFinite(s.insidePitch)?s.insidePitch:.03;}}
+    function restore(state){const s=state?.privateContent;if(s?.version===2&&Number.isFinite(s.theta)&&Number.isFinite(s.phi)&&Number.isFinite(s.distance)){theta=s.theta;phi=Math.max(.025,Math.min(1.42,s.phi));distance=Math.max(15,Math.min(34,s.distance));view=['room','top','inside','gallery','ceiling','storage'].includes(s.view)?s.view:'inside';insideYaw=Number.isFinite(s.insideYaw)?s.insideYaw:2.35;insidePitch=Number.isFinite(s.insidePitch)?s.insidePitch:.03;}}
     restore(roomState?.widgetState);
-    if(roomState?.widgetState?.privateContent?.roomStyleVersion!==2){view='inside';evening=false;insideYaw=2.35;insidePitch=.03;distance=25.5;}
+    if(roomState?.widgetState?.privateContent?.roomStyleVersion!==2){view='inside';insideYaw=2.35;insidePitch=.03;distance=25.5;}
     if(roomState?.widgetState?.privateContent?.furnitureVersion!==1){view='storage';insideYaw=.15;insidePitch=-.18;distance=25.5;}
     if(roomState?.widgetState?.privateContent?.paletteVersion!==1){view='inside';insideYaw=2.35;insidePitch=.03;distance=25.5;}
     if(roomState?.widgetState?.privateContent?.bedArtVersion!==1){view='inside';insideYaw=1.05;insidePitch=-.04;distance=25.5;}
@@ -812,7 +961,259 @@
     if(roomState?.widgetState?.privateContent?.sofaVersion!==2){view='gallery';insideYaw=-2.15;insidePitch=-.28;distance=34;}
     if(roomState?.widgetState?.privateContent?.sofaFinishVersion!==2){view='gallery';insideYaw=-2.15;insidePitch=-.28;distance=34;sofaColor='dustyBlue';}
     if(typeof roomState?.widgetState?.privateContent?.fanRunning==='boolean')fanRunning=roomState.widgetState.privateContent.fanRunning&&!reducedMotion.matches;
-    const walkPosition=new T.Vector3(0,5.25,0);
+    const walkPosition=new T.Vector3(0,5.25,0);let bobPhase=0,bobAmount=0;
+    // Automatic day/night: wall-clock phases of 5 minutes, blended over a few seconds.
+    const DAY_NIGHT_PERIOD_MS=5*60*1000,DAY_NIGHT_BLEND_S=10;
+    const scheduledNight=()=>Math.floor(Date.now()/DAY_NIGHT_PERIOD_MS)%2===1;
+    evening=scheduledNight();let nightMix=evening?1:0;
+    const mix=(day,night)=>day+(night-day)*nightMix;
+    const sunDay=new T.Color('#fff1d6'),sunNight=new T.Color('#9fb2e8'),sunDusk=new T.Color('#ff9a5c'),skyDay=new T.Color('#e8f2ff'),skyNight=new T.Color('#5a6788'),skyDusk=new T.Color('#ffc59e');
+    function stepDayNight(dt){
+      evening=scheduledNight();const target=evening?1:0;
+      if(nightMix===target)return false;
+      const finishing=Math.abs(target-nightMix)<=(reducedMotion.matches?1:dt/DAY_NIGHT_BLEND_S);if(finishing)setTimeout(()=>{captureRoomReflections(target===1);draw();},60);
+      const step=reducedMotion.matches?1:dt/DAY_NIGHT_BLEND_S;
+      nightMix=target>nightMix?Math.min(target,nightMix+step):Math.max(target,nightMix-step);
+      return true;
+    }
+    // Proximity interactions: each control offers only the action its current state allows.
+    const savedInteractions=roomState?.widgetState?.privateContent?.interactions||{};
+    let backTvOn=savedInteractions.backTv!==false,lampOn=savedInteractions.lamp!==false;
+    let frontFanRunning=typeof savedInteractions.frontFan==='boolean'?savedInteractions.frontFan&&!reducedMotion.matches:fanRunning;
+    floorExtension.setFrontLights(savedInteractions.frontLights!==false);
+    if(typeof savedInteractions.frontTv==='boolean')floorExtension.setTv(savedInteractions.frontTv);
+    model.updateMatrixWorld(true);
+    const doors=[
+      {id:'back',title:'Bedroom door',group:door,openAngle:1.1,anchor:new T.Vector3(-4.375,4.2,6.05),barrier:{x:-4.375,z:6.05,w:2.95,d:.18}},
+      {id:'wc',title:'Toilet door',group:floorExtension.wcDoor,openAngle:-1.45,anchor:floorExtension.toWorld(-.075,4.2,17.2),barrier:{z:17.2,w:2.15,d:.14}},
+      {id:'balcony',title:'Balcony door',group:floorExtension.balconyDoor,openAngle:-1.48,anchor:floorExtension.toWorld(0,4.2,32.2),barrier:{z:32.2,w:2.92,d:.45}}
+    ].map(d=>{
+      if(!Number.isFinite(d.barrier.x))d.barrier.x=d.anchor.x;
+      d.open=typeof savedInteractions.doors?.[d.id]==='boolean'?savedInteractions.doors[d.id]:true;
+      d.group.rotation.y=d.open?d.openAngle:0;d.barrier.active=!d.open;return d;
+    });
+    function insideBarrier(b){return Math.abs(walkPosition.x-b.x)<b.w/2+.2&&Math.abs(walkPosition.z-b.z)<b.d/2+.2;}
+    const worldOf=object=>object.getWorldPosition(new T.Vector3());
+    const sound=window.createRoomSound?window.createRoomSound():null;
+    if(sound)sound.setMuted(roomState?.widgetState?.privateContent?.soundMuted===true);
+    const unlockAudio=()=>sound?.unlock();
+    for(const type of ['pointerdown','keydown'])window.addEventListener(type,unlockAudio,{capture:true,passive:true});
+    function toggleDoor(d){
+      if(d.open&&insideBarrier(d.barrier)){showToast('Step out of the doorway to close it');return false;}
+      d.open=!d.open;d.barrier.active=!d.open;
+      d.swing={from:d.group.rotation.y,to:d.open?d.openAngle:0,t:0,duration:reducedMotion.matches?0:(d.open?1.05:.9)};
+      sound?.door(d.open);
+      return true;
+    }
+    const easeInOut=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+    function animateDoors(dt){
+      let moving=false;
+      for(const d of doors){
+        if(!d.swing)continue;
+        d.swing.t=d.swing.duration?Math.min(1,d.swing.t+dt/d.swing.duration):1;
+        d.group.rotation.y=d.swing.from+(d.swing.to-d.swing.from)*easeInOut(d.swing.t);
+        if(d.swing.t>=1){if(!d.open)sound?.latch();d.swing=null;}else moving=true;
+      }
+      return moving;
+    }
+    // Physical response: lights warm up, TVs fade in, fans spin up and coast down, switches flip.
+    const levels={cove:circuits.cove?1:0,lamp:lampOn?1:0,front:floorExtension.frontLightsOn()?1:0,backTv:circuits.desk&&backTvOn?1:0,frontTv:floorExtension.tvRequested()?1:0,backFan:fanRunning?1:0,frontFan:frontFanRunning?1:0,desk:circuits.desk?1:0};
+    const levelRates={desk:3,cove:9,lamp:7,front:8,backTv:4,frontTv:4,backFan:.55,frontFan:.45};
+    function levelTargets(){return{desk:circuits.desk?1:0,cove:circuits.cove?1:0,lamp:lampOn?1:0,front:floorExtension.frontLightsOn()?1:0,backTv:circuits.desk&&backTvOn?1:0,frontTv:floorExtension.tvRequested()?1:0,backFan:fanRunning?1:0,frontFan:frontFanRunning?1:0};}
+    function animateLevels(dt){
+      const targets=levelTargets();let moving=false;
+      for(const key of Object.keys(levels)){
+        const target=targets[key],diff=target-levels[key];
+        if(Math.abs(diff)<.004||reducedMotion.matches){levels[key]=target;continue;}
+        const rate=levelRates[key]*(key.endsWith('Fan')&&diff<0?.6:1);
+        levels[key]+=key.endsWith('Fan')?Math.sign(diff)*Math.min(Math.abs(diff),dt*rate):diff*Math.min(1,dt*rate);
+        moving=true;
+      }
+      for(const rocker of boardSwitches){
+        const target=rocker.userData.targetX??rocker.rotation.x,diff=target-rocker.rotation.x;
+        if(Math.abs(diff)>.002){rocker.rotation.x+=diff*Math.min(1,dt*22);moving=true;}else rocker.rotation.x=target;
+      }
+      return moving;
+    }
+    const fanAnchors={back:worldOf(fanYaw),front:floorExtension.toWorld(0,7.1,26.4)};
+    const showerAnchor=floorExtension.toWorld(5.05,5,19.5),basinAnchor=floorExtension.toWorld(4.8,3,15),wcAnchor=floorExtension.toWorld(0,2,19),acAnchor=new T.Vector3(0,7,-5.6);
+    const nearTo=(a,r=30)=>view==='inside'?1/(1+walkPosition.distanceToSquared(a)/r):.2;
+    function waterLoudness(){return Math.min(1,(floorExtension.showerOn()?nearTo(showerAnchor,40):0)+(floorExtension.tapOn()?.6*nearTo(basinAnchor,20):0));}
+    function airLoudness(){return movers.acVane.value*nearTo(acAnchor,60);}
+    function fanLoudness(){
+      const near=a=>view==='inside'?1/(1+walkPosition.distanceToSquared(a)/30):.25;
+      return Math.min(1,levels.backFan*near(fanAnchors.back)+levels.frontFan*near(fanAnchors.front));
+    }
+    const setAllFans=on=>{fanRunning=on;frontFanRunning=on;};
+        // Click-to-interact: nothing appears until a reachable object is clicked or tapped.
+    const byName=name=>model.getObjectByName(name);
+    let acOn=savedInteractions.ac===true;
+    const easeMover=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+    function mover(initial,duration,apply){const m={value:initial?1:0,target:initial?1:0,duration,apply};apply(easeMover(m.value));return m;}
+    const wardrobeStrip=[];wardrobe.traverse(o=>{if(o.userData.wardrobeStrip)wardrobeStrip.push(o);});
+    const movers={
+      wardrobe:mover(savedInteractions.wardrobe===true,1.1,v=>{wardrobeDoors.forEach(d=>d.rotation.y=d.userData.dir*1.85*v);wardrobeLight.intensity=v*4;wardrobeStrip.forEach(o=>o.material.emissiveIntensity=v*1.6);}),
+      curtains:mover(savedInteractions.curtains===true,1.6,v=>curtainDrapes.forEach(d=>{const side=d.userData.side;d.position.x=2.85+side*(2.65-1.33*v);d.scale.x=1+2.7*v;})),
+      lid:mover(savedInteractions.lid!==false,.75,v=>{floorExtension.lidPivot.rotation.x=1.72*v;}),
+      seat:mover(savedInteractions.seat===true,.65,v=>{floorExtension.seatPivot.rotation.x=1.66*v;}),
+      acVane:mover(acOn,1.4,v=>{acVane.rotation.x=.75*v;acLedMat.emissiveIntensity=v*1.6;acDisplay.material.opacity=v;})
+    };
+    function setMover(key,on){movers[key].target=on?1:0;if(reducedMotion.matches){movers[key].value=movers[key].target;movers[key].apply(movers[key].value);}}
+    const isOn=key=>movers[key].target===1;
+    function animateMovers(dt){
+      let moving=false;
+      for(const m of Object.values(movers)){
+        if(m.value===m.target)continue;
+        m.value=m.target>m.value?Math.min(m.target,m.value+dt/m.duration):Math.max(m.target,m.value-dt/m.duration);
+        m.apply(easeMover(m.value));moving=true;
+      }
+      return moving;
+    }
+    // Sitting and lying: the camera glides to a seated or reclined eye position and back.
+    let pose=null,camTween=null;
+    const poseSpots={
+      bed:{eye:new T.Vector3(4.45,2.2,4.75),yaw:Math.PI,pitch:1.12,enter:'Lie Down',exit:'Get Up'},
+      sofa:{eye:new T.Vector3(-4.3,3.6,-2.65),yaw:Math.PI/2,pitch:-.06,enter:'Sit Down',exit:'Stand Up'},
+      chair:{eye:new T.Vector3(2.3,4.3,-3.55),yaw:Math.PI/2,pitch:-.14,enter:'Sit Down',exit:'Stand Up'},
+      frontSofa:{eye:floorExtension.toWorld(-4.05,3.6,26.3),yaw:-Math.PI/2,pitch:-.05,enter:'Sit Down',exit:'Stand Up'},
+      wc:{eye:floorExtension.toWorld(0,3.55,18.95),yaw:Math.PI,pitch:-.1,enter:'Sit Down',exit:'Stand Up'}
+    };
+    function moveCamera(toPos,toYaw,toPitch,duration){
+      let dYaw=((toYaw-insideYaw)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI;
+      camTween={fromPos:walkPosition.clone(),toPos:toPos.clone(),fromYaw:insideYaw,dYaw,fromPitch:insidePitch,toPitch,t:0,duration:reducedMotion.matches?0:duration};
+    }
+    function animateCamera(dt){
+      if(!camTween)return false;
+      camTween.t=camTween.duration?Math.min(1,camTween.t+dt/camTween.duration):1;const e=easeMover(camTween.t);
+      walkPosition.lerpVectors(camTween.fromPos,camTween.toPos,e);
+      insideYaw=camTween.fromYaw+camTween.dYaw*e;insidePitch=camTween.fromPitch+(camTween.toPitch-camTween.fromPitch)*e;
+      if(camTween.t>=1)camTween=null;
+      return true;
+    }
+    function enterPose(key){
+      if(pose?.key===key)return;
+      const spot=poseSpots[key];pose={key,stand:pose?pose.stand:walkPosition.clone()};
+      stopMovement();walkVelocity.set(0,0);bobAmount=0;moveCamera(spot.eye,spot.yaw,spot.pitch,1.15);sound?.rustle();
+    }
+    function exitPose(){
+      if(!pose)return;const stand=pose.stand;pose=null;
+      moveCamera(stand,insideYaw,0,.95);sound?.rustle();
+    }
+    const poseAction=key=>{const spot=poseSpots[key],seated=pose?.key===key;return{icon:key==='bed'?'bed':'seat',intent:seated?'off':'on',label:seated?spot.exit:spot.enter,run:()=>seated?exitPose():enterPose(key)};};
+    const onOff=(on,label='')=>on?`Turn ${label}Off`.replace('  ',' '):`Turn ${label}On`.replace('  ',' ');
+    const lampParts=[];byName('window-bedside-drawer-lamp-charging')?.traverse(o=>{if(o.isMesh&&o.getWorldPosition(new T.Vector3()).distanceTo(bedsideLight.position)<.75)lampParts.push(o);});
+    const interactables=[
+      ...doors.map(d=>({id:'door-'+d.id,title:d.title,targets:[d.group],actions:()=>[
+        {icon:'door',intent:d.open?'off':'on',label:d.open?'Close':'Open',run:()=>toggleDoor(d)}]})),
+      {id:'wardrobe',title:'Wardrobe',targets:[wardrobe],actions:()=>[
+        {icon:'door',intent:isOn('wardrobe')?'off':'on',label:isOn('wardrobe')?'Close':'Open',run:()=>{setMover('wardrobe',!isOn('wardrobe'));sound?.door(isOn('wardrobe'));}}]},
+      {id:'curtains',title:'Curtains',targets:[curtains],actions:()=>[
+        {icon:'curtain',intent:isOn('curtains')?'off':'on',label:isOn('curtains')?'Open Curtains':'Close Curtains',run:()=>{setMover('curtains',!isOn('curtains'));sound?.rustle();}}]},
+      {id:'bed',title:'Bed',targets:[byName('simple-neutral-linen-bed')],actions:()=>[poseAction('bed')]},
+      {id:'sofa',title:'Sofa',targets:[byName('connected-l-sofa-three-plus-one'),byName('integrated-one-seat-return-under-ac')],actions:()=>[poseAction('sofa')]},
+      {id:'chair',title:'Gaming chair',targets:[byName('high-back-black-red-gaming-chair')],actions:()=>[poseAction('chair')]},
+      {id:'front-sofa',title:'Sofa',targets:floorExtension.frontSofaParts,actions:()=>[poseAction('frontSofa')]},
+      {id:'lamp',title:'Bedside lamp',targets:lampParts,actions:()=>[
+        {icon:'bulb',sfx:'click',intent:lampOn?'off':'on',label:onOff(lampOn),run:()=>{lampOn=!lampOn;}}]},
+      {id:'back-tv',title:'TV',targets:[byName('large-tilting-tv-wall-mount')],actions:()=>{const on=circuits.desk&&backTvOn;return[
+        {icon:'power',sfx:'tv',intent:on?'off':'on',label:onOff(on),run:()=>{if(on)backTvOn=false;else{backTvOn=true;circuits.desk=true;}}}];}},
+      {id:'front-tv',title:'TV',targets:[floorExtension.tvSurface],actions:()=>{const on=floorExtension.tvRequested();return[
+        {icon:'power',sfx:'tv',intent:on?'off':'on',label:onOff(on),run:()=>floorExtension.setTv(!on)}];}},
+      {id:'switchboard',title:'Switchboard',targets:[byName('interactive-desk-switchboard')],actions:()=>[
+        {icon:'bulb',sfx:'click',intent:circuits.cove?'off':'on',label:onOff(circuits.cove,'Light '),run:()=>{circuits.cove=!circuits.cove;}},
+        {icon:'fan',sfx:'click',intent:fanRunning?'off':'on',label:onOff(fanRunning,'Fan '),run:()=>{fanRunning=!fanRunning;}},
+        {icon:'power',sfx:'click',intent:circuits.desk?'off':'on',label:onOff(circuits.desk,'Desk Power '),run:()=>{circuits.desk=!circuits.desk;}}]},
+      {id:'wall-fan',title:'Wall fan',targets:[byName('wall-fan-mount'),byName('wall-fan-oscillation')],actions:()=>[
+        {icon:'fan',sfx:'click',intent:fanRunning?'off':'on',label:onOff(fanRunning),run:()=>{fanRunning=!fanRunning;}}]},
+      {id:'ceiling-fan',title:'Ceiling fan',targets:[floorExtension.frontFan],reach:9.5,actions:()=>[
+        {icon:'fan',sfx:'click',intent:frontFanRunning?'off':'on',label:onOff(frontFanRunning),run:()=>{frontFanRunning=!frontFanRunning;}}]},
+      ...floorExtension.plateMeshes.map((plate,i)=>({id:'front-switch-'+i,title:'Switches',targets:[plate],actions:()=>{const lit=floorExtension.frontLightsOn();return[
+        {icon:'bulb',sfx:'click',intent:lit?'off':'on',label:onOff(lit,'Light '),run:()=>floorExtension.setFrontLights(!lit)},
+        {icon:'fan',sfx:'click',intent:frontFanRunning?'off':'on',label:onOff(frontFanRunning,'Fan '),run:()=>{frontFanRunning=!frontFanRunning;}}];}})),
+      {id:'ac',title:'Air conditioner',targets:[acBody,acVane],reach:10,actions:()=>[
+        {icon:'ac',intent:acOn?'off':'on',label:onOff(acOn),run:()=>{acOn=!acOn;setMover('acVane',acOn);sound?.beep();}}]},
+      {id:'wc',title:'Toilet',targets:[...floorExtension.wcParts,floorExtension.lidPivot,floorExtension.seatPivot],actions:()=>{
+        const list=[poseAction('wc'),
+          {icon:'lid',intent:isOn('lid')?'off':'on',label:isOn('lid')?'Close Lid':'Open Lid',run:()=>{const open=!isOn('lid');setMover('lid',open);if(!open)setMover('seat',false);sound?.click(open);}}];
+        if(isOn('lid'))list.push({icon:'lid',intent:isOn('seat')?'off':'on',label:isOn('seat')?'Lower Seat':'Lift Seat',run:()=>{setMover('seat',!isOn('seat'));sound?.click(isOn('seat'));}});
+        list.push({icon:'water',intent:'on',label:'Flush',run:()=>{if(!floorExtension.flush()){showToast('Cistern is refilling…');return false;}sound?.flush();}});
+        return list;}},
+      {id:'shower',title:'Shower',targets:floorExtension.showerParts,actions:()=>{const on=floorExtension.showerOn();return[
+        {icon:'water',sfx:'click',intent:on?'off':'on',label:onOff(on),run:()=>floorExtension.setShower(!on)}];}},
+      {id:'basin',title:'Wash basin tap',targets:floorExtension.basinParts,actions:()=>{const on=floorExtension.tapOn();return[
+        {icon:'water',sfx:'click',intent:on?'off':'on',label:onOff(on),run:()=>floorExtension.setTap(!on)}];}}
+    ];
+    const itemsById=new Map(interactables.map(item=>[item.id,item]));
+    for(const item of interactables)for(const target of item.targets)target?.traverse(o=>{if(!o.userData.interactId)o.userData.interactId=item.id;});
+    const prompt=root.querySelector('[data-interact-prompt]'),promptCard=prompt.querySelector('.interact-card');
+    const promptTitle=prompt.querySelector('[data-interact-title]'),promptList=prompt.querySelector('[data-interact-actions]');
+    const toast=root.querySelector('[data-interact-toast]');
+    const projected=new T.Vector3();let promptSignature='',promptTargetId='',promptActions=[],toastTimer,activeItem=null;const activeAnchor=new T.Vector3();
+    function showToast(message){
+      toast.textContent=message;toast.hidden=false;toast.classList.remove('is-visible');void toast.offsetWidth;toast.classList.add('is-visible');
+      clearTimeout(toastTimer);toastTimer=setTimeout(()=>{toast.classList.remove('is-visible');toast.hidden=true;},2400);
+    }
+    const pickRay=new T.Raycaster();pickRay.params.Line.threshold=.01;pickRay.params.Points.threshold=.01;
+    const visibleChain=o=>{for(let p=o;p;p=p.parent)if(!p.visible)return false;return true;};
+    function pickAt(ndcX,ndcY){
+      pickRay.setFromCamera(new T.Vector2(ndcX,ndcY),camera);
+      for(const hit of pickRay.intersectObject(model,true)){
+        if(hit.object.userData.noPick||!hit.object.isMesh||!visibleChain(hit.object))continue;
+        return hit;
+      }
+      return null;
+    }
+    function openCardFor(hit,quiet){
+      const id=hit?.object.userData.interactId,item=id&&itemsById.get(id);
+      if(!item){closeCard();return false;}
+      if(hit.distance>(item.reach||7.5)){if(!quiet)showToast(`Move closer to the ${item.title.toLowerCase()}`);closeCard();return false;}
+      activeItem=item;activeAnchor.copy(hit.point);promptSignature='';draw();return true;
+    }
+    function closeCard(){if(!activeItem&&prompt.hidden)return;activeItem=null;prompt.hidden=true;promptSignature=promptTargetId='';promptActions=[];}
+    const iconFor={door:'#icon-door',power:'#icon-power',bulb:'#icon-bulb',fan:'#icon-fan',seat:'#icon-seat',bed:'#icon-bed',water:'#icon-water',ac:'#icon-ac',lid:'#icon-lid',curtain:'#icon-curtain'};
+    function updatePrompt(){
+      if(activeItem&&(view!=='inside'||(!pose&&!camTween&&walkPosition.distanceTo(activeAnchor)>(activeItem.reach||7.5)+3)))closeCard();
+      const target=activeItem;
+      if(!target){if(!prompt.hidden)closeCard();return;}
+      promptActions=target.actions();
+      const signature=target.id+'|'+promptActions.map(a=>a.label).join('|');
+      if(signature!==promptSignature){
+        const focusedIndex=promptList.contains(document.activeElement)?Number(document.activeElement.dataset.index):-1;
+        promptTitle.textContent=target.title;
+        promptList.replaceChildren(...promptActions.map((action,i)=>{
+          const button=document.createElement('button');button.type='button';button.className='interact-action';button.dataset.index=i;button.dataset.intent=action.intent;
+          button.setAttribute('aria-label',`${target.title}: ${action.label}`);
+          button.innerHTML=`<svg class="icon" aria-hidden="true"><use href="${iconFor[action.icon]||'#icon-power'}"/></svg><span></span><kbd aria-hidden="true">${promptActions.length>1?i+1:'E'}</kbd>`;
+          button.querySelector('span').textContent=action.label;return button;
+        }));
+        if(focusedIndex>=0)promptList.children[Math.min(focusedIndex,promptActions.length-1)]?.focus({preventScroll:true});
+        if(target.id!==promptTargetId){prompt.classList.remove('is-entering');void prompt.offsetWidth;prompt.classList.add('is-entering');}
+        promptSignature=signature;promptTargetId=target.id;prompt.hidden=false;
+      }
+      projected.copy(activeAnchor).project(camera);
+      const w=stage.clientWidth,h=stage.clientHeight;
+      if(projected.z<1&&Math.abs(projected.x)<.95&&Math.abs(projected.y)<.95){
+        const cw=promptCard.offsetWidth||180,ch=promptCard.offsetHeight||60;
+        const x=T.MathUtils.clamp((projected.x+1)/2*w,cw/2+12,w-cw/2-12),y=T.MathUtils.clamp((1-projected.y)/2*h,ch+32,h-120);
+        prompt.classList.remove('is-docked');prompt.style.transform=`translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0)`;
+      }else{prompt.classList.add('is-docked');prompt.style.transform='';}
+    }
+    function runPromptAction(index){
+      const action=promptActions[index];if(!action)return;
+      try{if(action.run()===false)return;}catch(error){console.error(error);showToast('That control is unavailable right now');return;}
+      if(action.sfx==='tv')sound?.tv(action.intent==='on');else if(action.sfx==='click')sound?.click(action.intent==='on');
+      draw();save();
+    }
+    promptList.addEventListener('click',e=>{const button=e.target.closest('.interact-action');if(button)runPromptAction(Number(button.dataset.index));});
+    window.addEventListener('keydown',e=>{
+      if(e.repeat||/INPUT|SELECT|TEXTAREA|SUMMARY/.test(e.target.tagName))return;
+      if(e.code==='Escape'&&activeItem){closeCard();return;}
+      if(e.code==='KeyE'){
+        if(view!=='inside')return;e.preventDefault();
+        if(activeItem)runPromptAction(0);else if(!openCardFor(pickAt(0,0)))showToast('Look at something nearby and press E');
+      }
+      else if(/^Digit[1-9]$/.test(e.code)&&activeItem&&promptActions.length>1){e.preventDefault();runPromptAction(Number(e.code.slice(5))-1);}
+    });
     view='inside';insideYaw=0;insidePitch=0;distance=34;
     function draw(){
       const inside=view==='inside',gallery=view==='gallery',ceilingView=view==='ceiling',storage=view==='storage',interior=inside||gallery||ceilingView||storage;
@@ -822,45 +1223,47 @@
       door.visible=!gallery;
       camera.fov=gallery?T.MathUtils.radToDeg(2*Math.atan(Math.max(4.7,5.6/camera.aspect)*(distance/25.5)/5.97)):interior?60+(distance-15)*2:39;camera.updateProjectionMatrix();
       camera.up.set(0,view==='top'?0:1,view==='top'?1:0);
-      if(interior){camera.position.copy(inside?walkPosition:new T.Vector3(0,5.25,0));camera.lookAt(camera.position.x+Math.sin(insideYaw)*Math.cos(insidePitch),camera.position.y+Math.sin(insidePitch),camera.position.z+Math.cos(insideYaw)*Math.cos(insidePitch));}
+      if(interior){camera.position.copy(inside?walkPosition:new T.Vector3(0,5.25,0));if(inside&&bobAmount>0&&!reducedMotion.matches){const sway=Math.cos(bobPhase)*.03*bobAmount;camera.position.y+=Math.abs(Math.sin(bobPhase))*.07*bobAmount-.035*bobAmount;camera.position.x-=Math.cos(insideYaw)*sway;camera.position.z+=Math.sin(insideYaw)*sway;}camera.lookAt(camera.position.x+Math.sin(insideYaw)*Math.cos(insidePitch),camera.position.y+Math.sin(insidePitch),camera.position.z+Math.cos(insideYaw)*Math.cos(insidePitch));}
       else{const fit=Math.max(1, .92/camera.aspect),radius=distance*3.7;camera.position.set(radius*fit*Math.sin(phi)*Math.sin(theta),2.4+radius*fit*Math.cos(phi),15+radius*fit*Math.sin(phi)*Math.cos(theta));camera.lookAt(0,2.4,15);}
       walls.left.visible=interior||camera.position.x>.8;walls.right.visible=interior||camera.position.x<-.8;walls.back.visible=interior||camera.position.z>.8;
       animeReverseFaces.forEach(art=>art.visible=!walls.left.visible);
       bedArtReverse.forEach(art=>art.visible=!walls.back.visible);
       front.visible=interior||camera.position.z<-.8;frontLow.visible=!front.visible;curtains.visible=front.visible;ceiling.visible=interior;
-      windowAssembly.visible=true;floorExtension.update(interior,evening,walkPosition.z);
+      windowAssembly.visible=true;floorExtension.update(interior,nightMix,walkPosition.z);
       root.querySelector('.walk-controls').hidden=!inside;
       const zone=(Math.abs(walkPosition.x)>6.3||walkPosition.z>36.3||walkPosition.z< -6.3)?'Outside':walkPosition.z<6.2?'Back room':walkPosition.z<20.2?(walkPosition.x>1.5||walkPosition.z<8.4?'Passage':walkPosition.z<14.2?'Stairs':walkPosition.x> -1.4?'Toilet':'Wash & shower'):walkPosition.z<32.2?'Front room':walkPosition.z<36.3?'Balcony':'Outside';
-      sun.intensity=evening?.08:2.8;ambient.intensity=evening?.38:.8;
-      coveLights.forEach(light=>light.intensity=circuits.cove?(evening?8:2):0);
-      ceilingGlow.emissiveIntensity=circuits.cove?(evening?1.4:.8):0;
-      curvedScreen.material=circuits.desk?pcScreen:switchedOffScreen;tvScreen.material=circuits.desk?tvOnMaterial:switchedOffScreen;
-      for(const rocker of boardSwitches){const on=rocker.userData.circuit==='fan'?fanRunning:circuits[rocker.userData.circuit];rocker.rotation.x=on?-.1:.1;rocker.userData.indicator.visible=on;}
+      const dusk=Math.sin(nightMix*Math.PI);sun.intensity=mix(2.8,.08)+dusk*.9;ambient.intensity=mix(.8,.38);sun.color.copy(sunDay).lerp(sunNight,nightMix).lerp(sunDusk,dusk*.85);ambient.color.copy(skyDay).lerp(skyNight,nightMix).lerp(skyDusk,dusk*.5);
+      coveLights.forEach(light=>light.intensity=levels.cove*mix(2,8));
+      ceilingGlow.emissiveIntensity=levels.cove*mix(.8,1.4);
+      curvedScreen.material=circuits.desk?pcScreen:switchedOffScreen;pcLight.intensity=levels.desk*2.4;pcGlow.emissiveIntensity=levels.desk*1.5;lightBarGlow.emissiveIntensity=levels.desk*2.2;deskLight.intensity=levels.desk*mix(2.5,6);tvScreen.material=levels.backTv>.01?tvOnMaterial:switchedOffScreen;tvOnMaterial.color.setScalar(levels.backTv);tvOnMaterial.emissiveIntensity=.55*levels.backTv;floorExtension.setTvLevel(levels.frontTv);floorExtension.setFrontLevel(levels.front);
+      for(const rocker of boardSwitches){const on=rocker.userData.circuit==='fan'?fanRunning:circuits[rocker.userData.circuit];rocker.userData.targetX=on?-.1:.1;if(reducedMotion.matches)rocker.rotation.x=rocker.userData.targetX;rocker.userData.indicator.visible=on;}
       const frontTvButton=root.querySelector('[data-front-tv]');frontTvButton.textContent=floorExtension.tvRequested()?'Turn front TV off':'Turn front TV on';frontTvButton.setAttribute('aria-pressed',String(floorExtension.tvRequested()));
       root.querySelectorAll('[data-circuit]').forEach(input=>input.checked=circuits[input.dataset.circuit]);
-      bedsideLight.intensity=evening?8:3;shadeMat.emissiveIntensity=evening?.45:.14;
-      renderer.toneMappingExposure=evening?1.12:1.02;
-      const lightButton=root.querySelector('[data-light]');lightButton.setAttribute('aria-pressed',String(evening));lightButton.setAttribute('aria-label',evening?'Switch to daylight':'Switch to evening lighting');lightButton.title=evening?'Daylight':'Evening lighting';lightButton.querySelector('use').setAttribute('href',evening?'#icon-moon':'#icon-sun');
-      const fanButton=root.querySelector('[data-fan]');fanButton.setAttribute('aria-pressed',String(fanRunning));fanButton.setAttribute('aria-label',fanRunning?'Turn fans off':'Turn fans on');fanButton.title=fanRunning?'Fan on':'Fan off';
+      bedsideLight.intensity=levels.lamp*mix(3,8);shadeMat.emissiveIntensity=levels.lamp*mix(.14,.45);
+      renderer.toneMappingExposure=mix(1.02,1.12);
+      const soundToggle=root.querySelector('[data-sound]'),soundOff=!sound||sound.isMuted();soundToggle.setAttribute('aria-pressed',String(!soundOff));soundToggle.setAttribute('aria-label',soundOff?'Turn sound on':'Turn sound off');soundToggle.title=soundOff?'Sound off':'Sound on';soundToggle.querySelector('use').setAttribute('href',soundOff?'#icon-mute':'#icon-sound');
+      const anyFan=fanRunning||frontFanRunning,fanButton=root.querySelector('[data-fan]');fanButton.setAttribute('aria-pressed',String(anyFan));fanButton.setAttribute('aria-label',anyFan?'Turn fans off':'Turn fans on');fanButton.title=anyFan?'Fans on':'Fans off';
       root.querySelector('[data-zoom]').value=Math.round((34-distance)/19*100);
       root.querySelector('[data-view-select]').value=inside?({ 'Front room':'front',Stairs:'stairs',Toilet:'wash','Wash & shower':'wash',Balcony:'balcony' }[zone]||'inside'):view;
       root.querySelector('[data-zoom-step="1"]').disabled=distance<=15;
       root.querySelector('[data-zoom-step="-1"]').disabled=distance>=34;
-      const nextShadowState=[view,evening,walls.left.visible,walls.right.visible,walls.back.visible,front.visible].join();
+      const nextShadowState=[view,nightMix===0||nightMix===1?nightMix:'blend',walls.left.visible,walls.right.visible,walls.back.visible,front.visible].join();
       if(nextShadowState!==shadowState){renderer.shadowMap.needsUpdate=true;shadowState=nextShadowState;}
       if(usePostProcessing){
         renderer.setRenderTarget(renderTarget);renderer.render(scene,camera);renderer.setRenderTarget(null);renderer.render(postScene,postCamera);
       }else renderer.render(scene,camera);
+      updatePrompt();
     }
-    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'back room only: simple warm off-white PVC panels concealing gatar-patiya, slim perimeter tray with warm cove lighting only',lighting:evening?'warm perimeter cove lighting and bedside lamp':'daylight with soft cove lighting and bedside lamp',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{chair:'black and muted red racing-style gaming chair, high back, headrest and lumbar cushions, side bolsters, adjustable arms and five twin casters',pc:'desktop tower below the desk on a low riser at the far end, mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'silver MacBook Air M2, black keyboard, large trackpad, notched display, MagSafe and two USB-C ports, open on raised aluminum holder',displays:'reference-style curved black monitor with slim bezels and round base, rotated sideways 15 degrees and tilted backward 10 degrees, independent Windows-style PC desktop with blue silk wallpaper and dark code editor; MacBook retains its macOS-style landscape wallpaper; 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'staggered 75-percent keyboard with shaped keycaps and legends, sculpted wireless mouse with split buttons and wheel, soundbar, remote, USB ports and cable tray; clear desk without lamp or wall accessories organizer'},bed:'simple bed with warm off-white fitted sheet, duvet linked to the selected sofa theme, matching pale pillow, gentle folds and short side drape',storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep, full-length live reflective mirror on left door',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Individual anime reference decor cutouts over continuous peach plaster, raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{circuits:{...circuits},version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning}})?.catch(()=>{});}
+    function save(){roomState?.setWidgetState({modelContent:{roomSize:'12 × 12 ft back room; approximate full-floor extension',view,camera:interiorView()?'walkthrough, eye level':'whole-floor overview',ceiling:'back room only: simple warm off-white PVC panels concealing gatar-patiya, slim perimeter tray with warm cove lighting only',lighting:evening?'warm perimeter cove lighting and bedside lamp':'daylight with soft cove lighting and bedside lamp',wallColors:{animeSideWall:'full wall warm peach-beige matching reference',otherWalls:'warm off-white'},sofaColor:sofaPalettes[sofaColor].label,sofa:'One connected L-shaped fabric sectional: three seats along anime wall plus one integrated seat returning along AC wall; no arm between sections; clear of door swing',workstation:{chair:'black and muted red racing-style gaming chair, high back, headrest and lumbar cushions, side bolsters, adjustable arms and five twin casters',pc:'desktop tower below the desk on a low riser at the far end, mesh intake fans, side window, motherboard and GPU; no RGB',laptop:'silver MacBook Air M2, black keyboard, large trackpad, notched display, MagSafe and two USB-C ports, open on raised aluminum holder',displays:'reference-style curved black monitor with slim bezels and round base, rotated sideways 15 degrees and tilted backward 10 degrees, independent Windows-style PC desktop with blue silk wallpaper and dark code editor; MacBook retains its macOS-style landscape wallpaper; 43-inch TV-style screen on tilting wall mount',tvTiltDegrees:tvTilt,details:'staggered 75-percent keyboard with shaped keycaps and legends, sculpted wireless mouse with split buttons and wheel, soundbar, remote, USB ports and cable tray; clear desk without lamp or wall accessories organizer'},bed:'simple bed with warm off-white fitted sheet, duvet linked to the selected sofa theme, matching pale pillow, gentle folds and short side drape',storage:{wardrobe:'between door and window, 2.8 ft wide × 1.8 ft deep, full-length live reflective mirror on left door',bedside:'two drawers beneath window beside bed, lamp, charging socket and USB ports'},wallDecor:'Individual anime reference decor cutouts over continuous peach plaster, raised above sofa; three slim black-framed neutral prints below AC on back wall; natural wood slats; no RGB',fan:{type:'wall-mounted oscillating',position:'on right wall between bed and desk',running:fanRunning}},privateContent:{circuits:{...circuits},version:2,decorVersion:1,roomStyleVersion:2,furnitureVersion:1,paletteVersion:1,bedArtVersion:1,workstationVersion:1,sofaVersion:2,sofaFinishVersion:2,sofaColor,tvTilt,theta,phi,distance,view,evening,insideYaw,insidePitch,fanRunning,interactions:{doors:Object.fromEntries(doors.map(d=>[d.id,d.open])),backTv:backTvOn,lamp:lampOn,frontLights:floorExtension.frontLightsOn(),frontFan:frontFanRunning,frontTv:floorExtension.tvRequested(),ac:acOn,wardrobe:isOn('wardrobe'),curtains:isOn('curtains'),lid:isOn('lid'),seat:isOn('seat')},soundMuted:!!sound?.isMuted()}})?.catch(()=>{});}
     function interiorView(){return ['inside','gallery','ceiling','storage'].includes(view);}
     const resize=new ResizeObserver(()=>{const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);const size=renderer.getDrawingBufferSize(new T.Vector2());if(usePostProcessing){renderTarget.setSize(size.x,size.y);postMat.uniforms.resolution.value.copy(size);}camera.aspect=w/h;camera.updateProjectionMatrix();draw();});resize.observe(stage);
     root.querySelector('[data-view-select]').addEventListener('change',e=>{view=e.target.value;phi=view==='top'?.025:.99;theta=view==='top'?0:-.5;distance=34;if(view==='inside'){walkPosition.set(0,5.25,0);insideYaw=0;insidePitch=0;}if(['front','stairs','wash','balcony'].includes(view)){const presets={front:[0,22.8,0],stairs:[-3.9,7.45,0],wash:[0,16,-0.45],balcony:[0,34,0]};const [x,z,yaw]=presets[view];walkPosition.set(x,5.25,z);insideYaw=yaw;insidePitch=e.target.value==='wash'?-.35:e.target.value==='balcony'?-.6:e.target.value==='stairs'?-.55:e.target.value==='front'?-.15:0;view='inside';distance=34;}if(view==='gallery'){walkPosition.set(0,5.25,0);insideYaw=-2.15;insidePitch=-.28;distance=34;}if(view==='ceiling'){insideYaw=2.35;insidePitch=.78;}if(view==='storage'){insideYaw=.15;insidePitch=-.18;}draw();save();});
     root.querySelectorAll('[data-turn]').forEach(b=>b.addEventListener('click',()=>{if(interiorView()){insideYaw-=Number(b.dataset.turn)*.3;view='inside';}else{theta+=Number(b.dataset.turn)*.3;}draw();save();}));
-    root.querySelector('[data-light]').addEventListener('click',()=>{evening=!evening;draw();save();});
     root.querySelectorAll('[data-circuit]').forEach(input=>input.addEventListener('change',()=>{circuits[input.dataset.circuit]=input.checked;draw();save();}));
-    root.querySelector('[data-front-tv]').addEventListener('click',()=>{floorExtension.toggleTv();draw();});
-    root.querySelector('[data-fan]').addEventListener('click',()=>{fanRunning=!fanRunning;draw();save();});
+    root.querySelector('[data-front-tv]').addEventListener('click',()=>{floorExtension.toggleTv();draw();save();});
+    root.querySelector('[data-fan]').addEventListener('click',()=>{setAllFans(!(fanRunning||frontFanRunning));sound?.click(fanRunning);draw();save();});
+    const soundButton=root.querySelector('[data-sound]');
+    soundButton.addEventListener('click',()=>{if(!sound){showToast('Sound is not supported in this browser');return;}sound.unlock();sound.setMuted(!sound.isMuted());if(!sound.isMuted())sound.click(true);draw();save();});
     root.querySelector('[data-zoom]').addEventListener('input',e=>{distance=34-Number(e.target.value)/100*19;draw();});root.querySelector('[data-zoom]').addEventListener('change',save);
     root.querySelectorAll('[data-zoom-step]').forEach(button=>button.addEventListener('click',()=>{distance=Math.max(15,Math.min(34,distance-Number(button.dataset.zoomStep)*1.5));draw();save();}));
     root.querySelector('[data-tv-tilt]').addEventListener('input',e=>{tvTilt=Number(e.target.value);draw();});root.querySelector('[data-tv-tilt]').addEventListener('change',save);
@@ -894,7 +1297,7 @@
       });
       button.addEventListener('contextmenu',e=>e.preventDefault());
     }
-    root.querySelector('[data-view-select]').addEventListener('change',stopMovement);
+    root.querySelector('[data-view-select]').addEventListener('change',()=>{stopMovement();walkVelocity.set(0,0);bobAmount=0;pose=null;camTween=null;closeCard();});
     const movementKeys=['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight'];
     window.addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA|BUTTON|SUMMARY/.test(e.target.tagName))return;if(movementKeys.includes(e.code)&&view==='inside'){e.preventDefault();keys.add(e.code);}});
     window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',stopMovement);
@@ -902,17 +1305,32 @@
     // Wall collision includes clear doorways. Outside remains explorable at floor level.
     const bedroomBarriers=[{x:-6.1,z:0,w:.18,d:12},{x:6.1,z:0,w:.18,d:12},{x:0,z:-6.1,w:12.4,d:.18},
       {x:-6,z:6.1,w:.25,d:.18},{x:-1.3,z:6.1,w:3.15,d:.18},{x:3.15,z:6.1,w:5.7,d:.18}];
-    const barriers=[...bedroomBarriers,...floorExtension.barriers];
-    function blocked(x,z){return barriers.some(b=>Math.abs(x-b.x)<b.w/2+.18&&Math.abs(z-b.z)<b.d/2+.18);}
+    const barriers=[...bedroomBarriers,...floorExtension.barriers,...doors.map(d=>d.barrier)];
+    function blocked(x,z){return barriers.some(b=>b.active!==false&&Math.abs(x-b.x)<b.w/2+.18&&Math.abs(z-b.z)<b.d/2+.18);}
+    let turnVelocity=0;const WALK_SPEED=4.5,TURN_SPEED=1.9,walkVelocity=new T.Vector2(),desiredVelocity=new T.Vector2();
     function walk(dt){
-      if(view!=='inside')return false;
+      if(view!=='inside'){walkVelocity.set(0,0);bobAmount=0;turnVelocity=0;return false;}
       let side=movement.x+(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0);
       let forward=movement.y+(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0);
-      const magnitude=Math.hypot(side,forward);if(magnitude<.08)return false;
-      const step=dt*4.5/Math.max(1,magnitude);side*=step;forward*=step;
-      const x=T.MathUtils.clamp(walkPosition.x+Math.sin(insideYaw)*forward-Math.cos(insideYaw)*side,-18,18);
-      const z=T.MathUtils.clamp(walkPosition.z+Math.cos(insideYaw)*forward+Math.sin(insideYaw)*side,-15,48);
-      if(!blocked(x,walkPosition.z))walkPosition.x=x;if(!blocked(walkPosition.x,z))walkPosition.z=z;
+      const magnitude=Math.hypot(side,forward),hasInput=magnitude>=.08;
+      if(camTween)return false;
+      if(pose){if(hasInput){exitPose();closeCard();}return false;}
+      // Left/right turn the view like walking in a real room; forward/back walk where you face.
+      turnVelocity+=(side*TURN_SPEED-turnVelocity)*Math.min(1,dt*10);
+      if(Math.abs(turnVelocity)<.01&&!side)turnVelocity=0;else insideYaw-=turnVelocity*dt;
+      if(forward&&Math.abs(insidePitch)>.01)insidePitch+=(0-insidePitch)*Math.min(1,dt*1.6);
+      if(forward){const k=WALK_SPEED/Math.max(1,Math.abs(forward));desiredVelocity.set(Math.sin(insideYaw)*forward*k,Math.cos(insideYaw)*forward*k);}
+      else desiredVelocity.set(0,0);
+      walkVelocity.lerp(desiredVelocity,Math.min(1,dt*(forward?9:7)));
+      const speed=walkVelocity.length();
+      bobAmount+=(Math.min(1,speed/WALK_SPEED)-bobAmount)*Math.min(1,dt*8);
+      if(!forward&&speed<.05){walkVelocity.set(0,0);if(bobAmount<.01){bobAmount=0;return turnVelocity!==0;}return true;}
+      const x=T.MathUtils.clamp(walkPosition.x+walkVelocity.x*dt,-18,18);
+      const z=T.MathUtils.clamp(walkPosition.z+walkVelocity.y*dt,-15,48);
+      if(!blocked(x,walkPosition.z))walkPosition.x=x;else walkVelocity.x=0;
+      if(!blocked(walkPosition.x,z))walkPosition.z=z;else walkVelocity.y=0;
+      const previousStep=Math.floor(bobPhase/Math.PI);bobPhase+=dt*speed/WALK_SPEED*10.5;
+      if(Math.floor(bobPhase/Math.PI)!==previousStep){const onStairs=walkPosition.z>=8.4&&walkPosition.z<=13.9&&walkPosition.x<=1.4&&walkPosition.x>=-5.65;sound?.footstep(onStairs?'stair':'tile',speed/WALK_SPEED);}
       // Follow the flight approached from the current landing, including the visible lower stair.
       let elevation=0;const {x:px,z:pz}=walkPosition,eye=walkPosition.y;
       if(pz>=8.4&&pz<=13.9&&px<=1.4&&px>=-5.65){
@@ -925,29 +1343,36 @@
     }
     const boardRaycaster=new T.Raycaster();let boardTap=null;
     function pickBoardSwitch(e){
+      if(view!=='inside'){return;}
       const bounds=renderer.domElement.getBoundingClientRect();
-      boardRaycaster.setFromCamera(new T.Vector2((e.clientX-bounds.left)/bounds.width*2-1,-(e.clientY-bounds.top)/bounds.height*2+1),camera);
-      const hit=boardRaycaster.intersectObjects([...boardSwitches,floorExtension.tvSurface],false)[0];
-      if(hit&&interiorView()){if(hit.object.userData.frontTv){floorExtension.toggleTv();draw();}else toggleCircuit(hit.object.userData.circuit);}
+      openCardFor(pickAt((e.clientX-bounds.left)/bounds.width*2-1,-(e.clientY-bounds.top)/bounds.height*2+1));
     }
     const pointers=new Map();let previousPinch=0;
     stage.addEventListener('pointerdown',e=>{stage.setPointerCapture(e.pointerId);pointers.set(e.pointerId,[e.clientX,e.clientY]);boardTap=pointers.size===1?{id:e.pointerId,x:e.clientX,y:e.clientY}:null;previousPinch=0;});
     stage.addEventListener('pointermove',e=>{if(boardTap&&Math.hypot(e.clientX-boardTap.x,e.clientY-boardTap.y)>6)boardTap=null;const old=pointers.get(e.pointerId);if(!old)return;pointers.set(e.pointerId,[e.clientX,e.clientY]);if(pointers.size===2){const a=[...pointers.values()],d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);if(previousPinch&&d>0)distance=Math.max(15,Math.min(34,distance*previousPinch/d));previousPinch=d;}else if(interiorView()){view='inside';insideYaw-=(e.clientX-old[0])*.005;insidePitch=Math.max(-1.1,Math.min(1.4,insidePitch+(e.clientY-old[1])*.004));}else{theta-=(e.clientX-old[0])*.007;phi=Math.max(.025,Math.min(1.42,phi+(e.clientY-old[1])*.005));if(view!=='top')view='room';}draw();});
     function up(e){if(e.type==='pointerup'&&boardTap?.id===e.pointerId)pickBoardSwitch(e);boardTap=null;pointers.delete(e.pointerId);previousPinch=0;save();}stage.addEventListener('pointerup',up);stage.addEventListener('pointercancel',up);
     let wheelTimer;stage.addEventListener('wheel',e=>{e.preventDefault();distance=Math.max(15,Math.min(34,distance+e.deltaY*.015));draw();clearTimeout(wheelTimer);wheelTimer=setTimeout(save,250);},{passive:false});
-    window.addEventListener('floor1:state',e=>{if(e.detail?.globals?.widgetState){restore(e.detail.globals.widgetState);restoreCircuits(e.detail.globals.widgetState.privateContent);const saved=e.detail.globals.widgetState.privateContent;const running=saved?.fanRunning;if(typeof running==='boolean')fanRunning=running&&!reducedMotion.matches;if(Number.isFinite(saved?.tvTilt))tvTilt=Math.max(0,Math.min(25,saved.tvTilt));if(Object.hasOwn(sofaPalettes,saved?.sofaColor))sofaColor=saved.sofaColor;draw();}});
-    reducedMotion.addEventListener('change',e=>{if(e.matches){fanRunning=false;draw();}});
+    window.addEventListener('floor1:state',e=>{if(e.detail?.globals?.widgetState){restore(e.detail.globals.widgetState);restoreCircuits(e.detail.globals.widgetState.privateContent);const saved=e.detail.globals.widgetState.privateContent;const running=saved?.fanRunning;if(typeof running==='boolean')fanRunning=running&&!reducedMotion.matches;if(Number.isFinite(saved?.tvTilt))tvTilt=Math.max(0,Math.min(25,saved.tvTilt));if(Object.hasOwn(sofaPalettes,saved?.sofaColor))sofaColor=saved.sofaColor;const sync=saved?.interactions;if(sync){for(const d of doors)if(typeof sync.doors?.[d.id]==='boolean'){d.open=sync.doors[d.id];d.barrier.active=!d.open;}if(typeof sync.backTv==='boolean')backTvOn=sync.backTv;if(typeof sync.lamp==='boolean')lampOn=sync.lamp;if(typeof sync.frontLights==='boolean')floorExtension.setFrontLights(sync.frontLights);if(typeof sync.frontFan==='boolean')frontFanRunning=sync.frontFan&&!reducedMotion.matches;if(typeof sync.frontTv==='boolean')floorExtension.setTv(sync.frontTv);}draw();}});
+    reducedMotion.addEventListener('change',e=>{if(e.matches){setAllFans(false);draw();}});
     // Animate only the requested moving fan, and pause when off-screen.
-    let inView=true,lastFrame=0;
+    let inView=true,lastFrame=0,acSwing=0;
     const visibilityObserver=new IntersectionObserver(entries=>{inView=entries[0].isIntersecting;});visibilityObserver.observe(stage);
     function animateFan(now){
-      if(!root.isConnected){visibilityObserver.disconnect();resize.disconnect();liveMirrors.forEach(mirror=>mirror.dispose());floorExtension.dispose();return;}
+      if(!root.isConnected){visibilityObserver.disconnect();resize.disconnect();liveMirrors.forEach(mirror=>mirror.dispose());floorExtension.dispose();roomEnvTarget?.dispose();pmrem.dispose();sound?.dispose();return;}
       if(now-lastFrame>=1000/24){const dt=Math.min((now-lastFrame)/1000,.1);lastFrame=now;
-        if(inView&&!document.hidden){const moving=walk(dt);if(fanRunning){floorExtension.animate(dt);fanTime+=dt;fanRotor.rotation.z=(fanRotor.rotation.z+dt*24)%(Math.PI*2);fanYaw.rotation.y=-Math.PI/2+Math.sin(fanTime*.72)*.58;}if(moving||fanRunning||floorExtension.isVideoPlaying())draw();}
+        if(inView&&!document.hidden){
+          const tweening=animateCamera(dt),moving=walk(dt)||tweening,doorsMoving=animateDoors(dt),skyChanging=stepDayNight(dt),levelsMoving=animateLevels(dt),moversMoving=animateMovers(dt),fixturesMoving=floorExtension.animateFixtures(dt);
+          if(levels.frontFan>0)floorExtension.animate(dt*levels.frontFan);
+          if(levels.backFan>0){fanTime+=dt*levels.backFan;fanRotor.rotation.z=(fanRotor.rotation.z+dt*24*levels.backFan)%(Math.PI*2);fanYaw.rotation.y=-Math.PI/2+Math.sin(fanTime*.72)*.58;}
+          if(levels.desk>0)for(const f of pcFans)f.rotor.rotation[f.axis]+=dt*30*levels.desk;
+          if(movers.acVane.value>0){acSwing+=dt;acLouvers.forEach(l=>l.rotation.y=Math.sin(acSwing*.45)*.45*movers.acVane.value);}
+          sound?.setFan(fanLoudness());sound?.setWater(waterLoudness());sound?.setAir(airLoudness());
+          if(moving||doorsMoving||skyChanging||levelsMoving||moversMoving||fixturesMoving||levels.desk>0||movers.acVane.value>0||levels.backFan>0||levels.frontFan>0||floorExtension.isVideoPlaying())draw();
+        }else{sound?.setFan(0);sound?.setWater(0);sound?.setAir(0);}
       }
       requestAnimationFrame(animateFan);
     }
     requestAnimationFrame(animateFan);
-    draw();
+    draw();captureRoomReflections(evening);draw();
   }catch(error){const el=root.querySelector('.room-error');el.hidden=false;el.textContent='3D view could not start: '+error.message;}
 })();

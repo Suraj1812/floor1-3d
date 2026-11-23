@@ -8,12 +8,12 @@ window.buildFloorExtension = function (T, model, {box,cylinder,sphere,tube,mat,p
   // Local PBR surfaces: do not mutate any of the completed bedroom materials.
   let seed=9127;const random=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
   function surface(kind){
-    const c=document.createElement('canvas');c.width=c.height=512;const q=c.getContext('2d');
-    q.fillStyle=kind==='fabric'?'#a3a58c':kind==='granite'?'#77736c':kind==='tile'?'#d2c8b5':'#e9e4d9';q.fillRect(0,0,512,512);
-    for(let i=0;i<42000;i++){const bright=random()>.5;q.fillStyle=`rgba(${bright?'255,249,231':'59,48,34'},${kind==='granite'?.08+random()*.2:.018+random()*.045})`;const size=kind==='granite'?1+random()*2:1;q.fillRect(random()*512,random()*512,size,size);}
-    if(kind==='tile')for(let i=0;i<12;i++){q.beginPath();q.strokeStyle='rgba(118,103,81,.055)';q.lineWidth=.3+random();let y=random()*512;for(let x=0;x<=512;x+=4){y+=Math.sin(x*.013+i)*.7;q.lineTo(x,y);}q.stroke();}
-    if(kind==='fabric')for(let i=0;i<512;i+=2){q.fillStyle='rgba(51,48,32,.09)';q.fillRect(i,0,1,512);q.fillStyle='rgba(249,240,207,.13)';q.fillRect(0,i,512,1);}
-    const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=8;return t;
+    const size=window.matchMedia('(max-width: 700px), (pointer: coarse)').matches?512:1024,k=size/512;const c=document.createElement('canvas');c.width=c.height=size;const q=c.getContext('2d');
+    q.fillStyle=kind==='fabric'?'#a3a58c':kind==='granite'?'#77736c':kind==='tile'?'#d2c8b5':'#e9e4d9';q.fillRect(0,0,size,size);
+    for(let i=0;i<42000*k*k;i++){const bright=random()>.5;q.fillStyle=`rgba(${bright?'255,249,231':'59,48,34'},${kind==='granite'?.08+random()*.2:.018+random()*.045})`;const dot=(kind==='granite'?1+random()*2:1)*k;q.fillRect(random()*size,random()*size,dot,dot);}
+    if(kind==='tile')for(let i=0;i<12;i++){q.beginPath();q.strokeStyle='rgba(118,103,81,.055)';q.lineWidth=.3+random();let y=random()*size;for(let x=0;x<=size;x+=4){y+=Math.sin(x*.013+i)*.7;q.lineTo(x,y);}q.stroke();}
+    if(kind==='fabric')for(let i=0;i<size;i+=2*k){q.fillStyle='rgba(51,48,32,.09)';q.fillRect(i,0,k,size);q.fillStyle='rgba(249,240,207,.13)';q.fillRect(0,i,size,k);}
+    const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=16;return t;
   }
   const plasterMap=surface('plaster'),floorMap=surface('tile'),graniteMap=surface('granite'),weave=surface('fabric');
   plaster=plaster.clone();plaster.color.set('#eee9dd');plaster.bumpMap=plasterMap;plaster.bumpScale=.007;plaster.roughness=.94;
@@ -120,22 +120,39 @@ window.buildFloorExtension = function (T, model, {box,cylinder,sphere,tube,mat,p
   const wcDoor=new T.Group();wcDoor.position.set(-1.15,0,17.2);wcDoor.rotation.y=-1.45;extension.add(wcDoor);
   box(2.15,7,.08,1.075,3.5,0,oak,wcDoor);box(.18,.07,.1,1.9,3.4,-.08,chrome,wcDoor);
   // WC faces the doorway; lid, seat ring, pedestal, cistern and flush plate.
-  sphere(.0,.72,19,.46,.65,.66,white,extension);
-  sphere(.0,1.25,18.9,.59,.18,.8,white,extension);
-  sphere(.0,1.39,18.87,.37,.015,.51,dark,extension);
-  const seat=new T.Mesh(new T.TorusGeometry(.43,.075,10,36),white);seat.rotation.x=Math.PI/2;seat.scale.y=1.4;seat.position.set(0,1.42,18.85);extension.add(seat);
-  box(1.16,1.6,.48,0,1.95,19.7,white,extension,.08);box(.3,.03,.15,0,2.77,19.7,chrome,extension);
+  const wcParts=[sphere(.0,.72,19,.46,.65,.66,white,extension),sphere(.0,1.25,18.9,.59,.18,.8,white,extension)];
+  const bowlWater=new T.MeshPhysicalMaterial({color:'#9fc4cf',roughness:.05,metalness:0,transparent:true,opacity:.85,clearcoat:1});
+  wcParts.push(sphere(.0,1.39,18.87,.37,.015,.51,bowlWater,extension));
+  // Seat and lid share a rear hinge so both can be lifted.
+  const seatPivot=new T.Group();seatPivot.position.set(0,1.44,19.42);extension.add(seatPivot);
+  const seat=new T.Mesh(new T.TorusGeometry(.43,.075,10,36),white);seat.rotation.x=Math.PI/2;seat.scale.y=1.4;seat.position.set(0,-.02,-.57);seat.castShadow=true;seatPivot.add(seat);
+  const lidPivot=new T.Group();lidPivot.position.set(0,1.53,19.44);extension.add(lidPivot);
+  const lid=sphere(0,0,-.6,.5,.045,.66,white,lidPivot);
+  wcParts.push(box(1.16,1.6,.48,0,1.95,19.7,white,extension,.08));
+  const flushPlate=box(.3,.03,.15,0,2.77,19.7,chrome,extension);wcParts.push(flushPlate);
+  const swirlCanvas=document.createElement('canvas');swirlCanvas.width=swirlCanvas.height=256;{const q=swirlCanvas.getContext('2d');q.translate(128,128);for(let a=0;a<6;a++){q.beginPath();for(let t=0;t<1;t+=.01){const r=t*120,ang=a*Math.PI/3+t*5.5;q.lineTo(Math.cos(ang)*r,Math.sin(ang)*r);}q.strokeStyle='rgba(255,255,255,.75)';q.lineWidth=7;q.stroke();}}
+  const swirlMap=new T.CanvasTexture(swirlCanvas);swirlMap.colorSpace=T.SRGBColorSpace;
+  const swirl=new T.Mesh(new T.CircleGeometry(.36,40),new T.MeshBasicMaterial({map:swirlMap,transparent:true,opacity:0,depthWrite:false}));swirl.rotation.x=-Math.PI/2;swirl.scale.set(1,1.38,1);swirl.position.set(0,1.41,18.87);swirl.visible=false;extension.add(swirl);
+  let flushTime=-1;
   tube([[-.8,2,19.9],[-.95,1.4,19.6],[-.8,.7,19.3],[-.65,1.8,19.4]],.025,chrome,extension);
   // Shower enclosure entered from the wash area through its open left end.
-  box(3.2,.09,2.8,4.3,.13,18.7,white,extension);
   box(.035,6.5,2.8,2.7,3.4,18.7,glass,extension);
   box(1.65,6.5,.035,5.05,3.4,17.3,glass,extension);
-  tube([[5.85,3.5,19.5],[5.85,7,19.5],[5.1,7,19.5]],.035,chrome,extension);
-  cylinder(.32,.07,5.05,6.95,19.5,chrome,extension);box(.3,.5,.08,5.84,3.6,19.5,chrome,extension);
+  const showerParts=[box(3.2,.09,2.8,4.3,.13,18.7,white,extension)];
+  showerParts.push(tube([[5.85,3.5,19.5],[5.85,7,19.5],[5.1,7,19.5]],.035,chrome,extension));
+  showerParts.push(cylinder(.32,.07,5.05,6.95,19.5,chrome,extension),box(.3,.5,.08,5.84,3.6,19.5,chrome,extension));
   box(.4,.015,.4,4.7,.19,19.6,dark,extension);
+  // Rain-head water: short falling streaks recycled each frame while the valve is open.
+  const DROPS=320,dropState=new Float32Array(DROPS*4),dropPositions=new Float32Array(DROPS*6);
+  const resetDrop=(i,y=6.9)=>{const a=Math.random()*Math.PI*2,r=Math.sqrt(Math.random())*.27;dropState[i*4]=Math.cos(a)*r;dropState[i*4+1]=Math.sin(a)*r;dropState[i*4+2]=y;dropState[i*4+3]=13+Math.random()*6;};
+  for(let i=0;i<DROPS;i++)resetDrop(i,.2+Math.random()*6.7);
+  const dropGeometry=new T.BufferGeometry();dropGeometry.setAttribute('position',new T.BufferAttribute(dropPositions,3));
+  const showerWater=new T.LineSegments(dropGeometry,new T.LineBasicMaterial({color:'#dcefff',transparent:true,opacity:.55,depthWrite:false}));showerWater.frustumCulled=false;showerWater.visible=false;showerWater.userData.noPick=true;extension.add(showerWater);
+  let showerOn=false,tapOn=false;
   box(2.1,1.65,1.2,4.8,1.35,15,oak,extension,.04);
-  box(2.3,.12,1.35,4.8,2.25,15,white,extension,.05);
-  sphere(4.8,2.35,15,.75,.12,.43,white,extension);tube([[5.1,2.3,14.7],[5.1,2.9,14.7],[4.85,2.9,14.9]],.035,chrome,extension);
+  const basinParts=[box(2.3,.12,1.35,4.8,2.25,15,white,extension,.05)];
+  basinParts.push(sphere(4.8,2.35,15,.75,.12,.43,white,extension),tube([[5.1,2.3,14.7],[5.1,2.9,14.7],[4.85,2.9,14.9]],.035,chrome,extension));
+  const tapStream=new T.Mesh(new T.CylinderGeometry(.02,.026,.5,12,1,true),new T.MeshPhysicalMaterial({color:'#e4f3fb',roughness:.05,transparent:true,opacity:.6,depthWrite:false}));tapStream.position.set(4.85,2.64,14.9);tapStream.visible=false;tapStream.userData.noPick=true;extension.add(tapStream);
   box(2.2,2.2,.06,4.8,4.1,14.32,metal,extension);
   const toiletMirror=createMirror(2.05,2.05,extension);toiletMirror.name='toilet-vanity-live-mirror';toiletMirror.position.set(4.8,4.1,14.358);
 
@@ -179,10 +196,9 @@ window.buildFloorExtension = function (T, model, {box,cylinder,sphere,tube,mat,p
   }
   const curtainRod=cylinder(.025,3.9,3.4,7.43,31.73,metal,extension);curtainRod.rotation.z=Math.PI/2;
   box(7,.035,6,-.3,.065,26.9,upholstery,extension);
-  box(2.7,.45,6.6,-4.25,.65,26.3,sage,extension,.13);
-  box(.4,1.8,6.7,-5.35,1.55,26.3,sage,extension,.1);
-  for(const z of [24.2,26.3,28.4])box(2.1,.35,1.95,-4.15,1.06,z,sage,extension,.11);
-  for(const z of [22.9,29.7])box(2.7,1.5,.4,-4.25,1.2,z,sage,extension,.1);
+  const frontSofaParts=[box(2.7,.45,6.6,-4.25,.65,26.3,sage,extension,.13),box(.4,1.8,6.7,-5.35,1.55,26.3,sage,extension,.1)];
+  for(const z of [24.2,26.3,28.4])frontSofaParts.push(box(2.1,.35,1.95,-4.15,1.06,z,sage,extension,.11));
+  for(const z of [22.9,29.7])frontSofaParts.push(box(2.7,1.5,.4,-4.25,1.2,z,sage,extension,.1));
   cylinder(1.3,.12,-.8,1.45,26.8,teak,extension,.025);cylinder(.4,1.4,-.8,.7,26.8,dark,extension);
   box(.18,3.6,5.5,5.8,4.8,26.6,oak,extension);box(.12,2.6,4.5,5.65,4.9,26.6,dark,extension,.025);
   // A real bundled nature clip, independent of the computer wallpaper.
@@ -203,7 +219,6 @@ window.buildFloorExtension = function (T, model, {box,cylinder,sphere,tube,mat,p
   let tvRequested=true,tvInRoom=false,tvPlayPending=false,tvFailed=false;
   function syncTv(){
     const active=tvRequested&&tvInRoom&&!document.hidden&&!tvFailed;
-    tvSurface.material=tvRequested?frontTvMaterial:tvOffMaterial;
     if(active&&tvVideo.paused&&!tvPlayPending){
       tvPlayPending=true;const attempt=tvVideo.play();
       if(attempt)attempt.catch(()=>{}).finally(()=>{tvPlayPending=false;});else tvPlayPending=false;
@@ -225,8 +240,9 @@ window.buildFloorExtension = function (T, model, {box,cylinder,sphere,tube,mat,p
   }
   for(const z of [24.2,28.1]){const pillow=box(.45,.85,.85,-4.7,1.68,z,upholstery,extension,.1);pillow.rotation.x=.2;pillow.rotation.z=-.2;}
   // Switch plates, sockets, skirting and a modest wall light.
-  for(const [x,z] of [[-2,31.94],[-1.9,20.35]]){
-    box(.55,.4,.035,x,4.1,z,cream,extension,.015);
+  const plateMeshes=[];
+  for(const [x,z] of [[-1.9,20.35],[-2,31.94]]){
+    plateMeshes.push(box(.55,.4,.035,x,4.1,z,cream,extension,.015));
     for(const dx of [-.15,.03,.19])box(.09,.18,.02,x+dx,4.1,z-.03,white,extension,.008);
   }
   box(.035,.42,.7,5.87,1.4,25.5,cream,extension,.012);
@@ -278,5 +294,37 @@ window.buildFloorExtension = function (T, model, {box,cylinder,sphere,tube,mat,p
   const daylight=new T.DirectionalLight('#fff0db',2.5);daylight.position.set(-4,12,40);daylight.target.position.set(0,1,25);daylight.castShadow=true;
   daylight.shadow.mapSize.set(2048,2048);Object.assign(daylight.shadow.camera,{left:-9,right:9,top:10,bottom:-10,near:1,far:45});daylight.shadow.normalBias=.025;daylight.shadow.bias=-.00015;daylight.shadow.radius=3;
   extension.add(daylight,daylight.target);
-  return {tvSurface,toggleTv(){tvRequested=!tvRequested;syncTv();},tvRequested(){return tvRequested;},isVideoPlaying(){return tvInRoom&&!tvVideo.paused&&!tvVideo.ended;},dispose(){tvVideo.pause();tvVideo.removeAttribute('src');tvVideo.load();tvVideo.remove();tvVideoMap.dispose();frontTvMaterial.dispose();tvOffMaterial.dispose();document.removeEventListener('visibilitychange',syncTv);},animate(dt){ceilingRotor.rotation.y=(ceilingRotor.rotation.y+dt*13)%(Math.PI*2);},barriers:barriers.map(b=>({...b,x:-b.x})),update(interior,evening,cameraZ){tvInRoom=interior&&cameraZ>20.2&&cameraZ<32.25;syncTv();outdoors.visible=interior&&cameraZ>20.3;skyMaterial.color.set(evening?'#8e8c9c':'#ffffff');roofs.visible=interior;envelope.visible=interior;lowWalls.visible=!interior;daylight.intensity=evening?.12:2.5;lights.forEach(light=>light.intensity=evening?17:6);warmLight.emissiveIntensity=evening?1.4:.3;}};
+  let frontLightsOn=true,frontLevel=1;const skyNight=new T.Color('#5d6684'),skyDusk=new T.Color('#f2a77e');
+  const frontLights=lights.filter(light=>light.position.z>20);
+  const toWorld=(x,y,z)=>{extension.updateWorldMatrix(true,false);return extension.localToWorld(new T.Vector3(x,y,z));};
+  const switchPlates=[[-1.9,4.1,20.35],[-2,4.1,31.94]].map(([x,y,z])=>toWorld(x,y,z));
+  function animateFixtures(dt){
+    let moving=false;
+    if(showerOn||showerWater.visible){
+      let active=0;
+      for(let i=0;i<DROPS;i++){
+        let y=dropState[i*4+2];
+        if(y>.2){y-=dropState[i*4+3]*dt;dropState[i*4+2]=y;}
+        if(y<=.2){if(showerOn)resetDrop(i);else{dropState[i*4+2]=.2;}}
+        y=dropState[i*4+2];const spread=1+(6.9-y)*.05,x=5.05+dropState[i*4]*spread,z=19.5+dropState[i*4+1]*spread;
+        const live=y>.2;if(live)active++;
+        dropPositions.set(live?[x,y,z,x,Math.min(6.9,y+.32),z]:[0,-50,0,0,-50,0],i*6);
+      }
+      dropGeometry.attributes.position.needsUpdate=true;
+      showerWater.visible=active>0;moving=true;
+    }
+    if(tapOn){tapStream.scale.set(1+Math.sin(performance.now()*.05)*.08,1,1);moving=true;}
+    if(flushTime>=0){
+      flushTime+=dt;const t=flushTime;
+      flushPlate.position.y=2.77-(t<.35?.016:0);
+      swirl.visible=true;swirl.rotation.z-=dt*(9-t*2);swirl.material.opacity=Math.max(0,Math.min(.8,t*3,(3.2-t)*.8));
+      if(t>3.4){flushTime=-1;swirl.visible=false;flushPlate.position.y=2.77;}
+      moving=true;
+    }
+    return moving;
+  }
+  return {tvSurface,wcDoor,balconyDoor,toWorld,switchPlates,frontFan,wcParts,showerParts,basinParts,frontSofaParts,plateMeshes,seatPivot,lidPivot,animateFixtures,
+    flush(){if(flushTime>=0)return false;flushTime=0;return true;},isFlushing(){return flushTime>=0;},
+    setShower(on){showerOn=!!on;if(showerOn)showerWater.visible=true;},showerOn(){return showerOn;},
+    setTap(on){tapOn=!!on;tapStream.visible=tapOn;},tapOn(){return tapOn;},setFrontLights(on){frontLightsOn=!!on;},frontLightsOn(){return frontLightsOn;},setFrontLevel(level){frontLevel=level;},toggleTv(){tvRequested=!tvRequested;syncTv();},setTv(on){tvRequested=!!on;syncTv();},setTvLevel(level){frontTvMaterial.color.setScalar(level);tvSurface.material=level>.01?frontTvMaterial:tvOffMaterial;},tvRequested(){return tvRequested;},isVideoPlaying(){return tvInRoom&&!tvVideo.paused&&!tvVideo.ended;},dispose(){tvVideo.pause();tvVideo.removeAttribute('src');tvVideo.load();tvVideo.remove();tvVideoMap.dispose();frontTvMaterial.dispose();tvOffMaterial.dispose();document.removeEventListener('visibilitychange',syncTv);},animate(dt){ceilingRotor.rotation.y=(ceilingRotor.rotation.y+dt*13)%(Math.PI*2);},barriers:barriers.map(b=>({...b,x:-b.x})),update(interior,night,cameraZ){const mix=(day,dark)=>day+(dark-day)*night;tvInRoom=interior&&cameraZ>20.2&&cameraZ<32.25;syncTv();outdoors.visible=interior&&cameraZ>20.3;skyMaterial.color.set('#ffffff').lerp(skyNight,night).lerp(skyDusk,Math.sin(night*Math.PI)*.7);roofs.visible=interior;envelope.visible=interior;lowWalls.visible=!interior;daylight.intensity=mix(2.5,.12);lights.forEach(light=>light.intensity=(frontLights.includes(light)?frontLevel:1)*mix(6,17));warmLight.emissiveIntensity=frontLevel*mix(.3,1.4);}};
 };
